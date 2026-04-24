@@ -1,27 +1,35 @@
 import SwiftUI
 
-/// Design tokens. Warm terracotta-ember palette, not generic orange.
+/// Design tokens — Exe Foundry Bold palette.
+/// Gold accent, void/stratum dark surfaces, aura purple highlights.
 enum Theme {
-    static let brandAccent       = Color(red: 0xC9/255.0, green: 0x52/255.0, blue: 0x1D/255.0)
-    static let brandAccentDark   = Color(red: 0xE8/255.0, green: 0x77/255.0, blue: 0x4A/255.0)
-    static let brandEmberDeep    = Color(red: 0x8B/255.0, green: 0x3E/255.0, blue: 0x13/255.0)
-    static let brandEmberGlow    = Color(red: 0xF0/255.0, green: 0xA0/255.0, blue: 0x70/255.0)
+    // Brand accent — Exe Gold (#F5D76E)
+    static let brandAccent       = Color(red: 0xF5/255.0, green: 0xD7/255.0, blue: 0x6E/255.0)
+    // Hover / lighter gold (#FADF85)
+    static let brandAccentDark   = Color(red: 0xFA/255.0, green: 0xDF/255.0, blue: 0x85/255.0)
+    // Aura purple for depth/glow (#6B4C9A)
+    static let brandEmberDeep    = Color(red: 0x6B/255.0, green: 0x4C/255.0, blue: 0x9A/255.0)
+    // Pressed / darker gold (#E6C54F)
+    static let brandEmberGlow    = Color(red: 0xE6/255.0, green: 0xC5/255.0, blue: 0x4F/255.0)
 
-    static let warmSurface       = Color(red: 0xFA/255.0, green: 0xF7/255.0, blue: 0xF3/255.0)
-    static let warmSurfaceDark   = Color(red: 0x1C/255.0, green: 0x18/255.0, blue: 0x16/255.0)
+    // Surfaces
+    static let warmSurface       = Color(red: 0xFA/255.0, green: 0xF8/255.0, blue: 0xF3/255.0) // light canvas
+    static let warmSurfaceDark   = Color(red: 0x0F/255.0, green: 0x0E/255.0, blue: 0x1A/255.0) // Void — dark canvas
 
-    static let categoricalClaude = Color(red: 0xC9/255.0, green: 0x52/255.0, blue: 0x1D/255.0)
-    static let categoricalCursor = Color(red: 0x3F/255.0, green: 0x6B/255.0, blue: 0x8C/255.0)
-    static let categoricalCodex  = Color(red: 0x4A/255.0, green: 0x7D/255.0, blue: 0x5C/255.0)
+    // Categorical provider colors (distinct hues, good contrast on dark)
+    static let categoricalClaude = Color(red: 0xDA/255.0, green: 0x7E/255.0, blue: 0x56/255.0) // Anthropic warm
+    static let categoricalCursor = Color(red: 0x3F/255.0, green: 0x6B/255.0, blue: 0x8C/255.0) // Cursor blue
+    static let categoricalCodex  = Color(red: 0x4A/255.0, green: 0x7D/255.0, blue: 0x5C/255.0) // Codex green
 
-    static let oneShotGood  = Color(red: 0x30/255.0, green: 0xD1/255.0, blue: 0x58/255.0)
-    static let oneShotMid   = Color(red: 0xFF/255.0, green: 0x9F/255.0, blue: 0x0A/255.0)
-    static let oneShotLow   = Color(red: 0xFF/255.0, green: 0x45/255.0, blue: 0x3A/255.0)
+    // One-shot success rate indicators
+    static let oneShotGood  = Color(red: 0x86/255.0, green: 0xEF/255.0, blue: 0xAC/255.0) // success green
+    static let oneShotMid   = Color(red: 0xF5/255.0, green: 0x9E/255.0, blue: 0x0B/255.0) // warning orange (not gold)
+    static let oneShotLow   = Color(red: 0xF8/255.0, green: 0x71/255.0, blue: 0x71/255.0) // error red
 
-    // Semantic colors -- tuned to sit alongside the terracotta accent without clashing.
-    static let semanticDanger  = Color(red: 0xC8/255.0, green: 0x3F/255.0, blue: 0x2C/255.0) // brick-red, terracotta-leaning
-    static let semanticWarning = Color(red: 0xD9/255.0, green: 0x8F/255.0, blue: 0x29/255.0) // amber, warmer than vanilla
-    static let semanticSuccess = Color(red: 0x4E/255.0, green: 0xA8/255.0, blue: 0x65/255.0) // muted green that holds against terracotta
+    // Semantic colors — tuned for Exe Foundry Bold dark surfaces.
+    static let semanticDanger  = Color(red: 0xDC/255.0, green: 0x26/255.0, blue: 0x26/255.0) // clear red
+    static let semanticWarning = Color(red: 0xF5/255.0, green: 0x9E/255.0, blue: 0x0B/255.0) // orange, never gold
+    static let semanticSuccess = Color(red: 0x16/255.0, green: 0xA3/255.0, blue: 0x4A/255.0) // confident green
 }
 
 extension Font {
