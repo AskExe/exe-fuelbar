@@ -189,8 +189,8 @@ private struct Header: View {
         HStack {
             VStack(alignment: .leading, spacing: 1) {
                 (
-                    Text("Code").foregroundStyle(.primary)
-                    + Text("Burn").foregroundStyle(Theme.brandAccent)
+                    Text("Exe ").foregroundStyle(.primary)
+                    + Text("Fuelbar").foregroundStyle(Theme.brandAccent)
                 )
                 .font(.system(size: 13, weight: .semibold))
                 .tracking(-0.15)

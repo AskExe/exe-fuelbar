@@ -13,7 +13,7 @@ export type Plan = {
   setAt: string
 }
 
-export type CodeburnConfig = {
+export type ExeFuelbarConfig = {
   currency?: {
     code: string
     symbol?: string
@@ -30,16 +30,16 @@ function getConfigPath(): string {
   return join(getConfigDir(), 'config.json')
 }
 
-export async function readConfig(): Promise<CodeburnConfig> {
+export async function readConfig(): Promise<ExeFuelbarConfig> {
   try {
     const raw = await readFile(getConfigPath(), 'utf-8')
-    return JSON.parse(raw) as CodeburnConfig
+    return JSON.parse(raw) as ExeFuelbarConfig
   } catch {
     return {}
   }
 }
 
-export async function saveConfig(config: CodeburnConfig): Promise<void> {
+export async function saveConfig(config: ExeFuelbarConfig): Promise<void> {
   await mkdir(getConfigDir(), { recursive: true })
   const configPath = getConfigPath()
   const tmpPath = `${configPath}.tmp`

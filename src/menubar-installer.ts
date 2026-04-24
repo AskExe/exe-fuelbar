@@ -9,9 +9,9 @@ import { Readable } from 'node:stream'
 /// Public GitHub repo that hosts signed macOS release builds. `/releases/latest` returns the
 /// newest tagged release; we filter its assets list for our zipped .app bundle.
 const RELEASE_API = 'https://api.github.com/repos/AskExe/exe-fuelbar/releases/latest'
-const APP_BUNDLE_NAME = 'Exe FuelbarMenubar.app'
-const ASSET_PATTERN = /^Exe FuelbarMenubar-.*\.zip$/
-const APP_PROCESS_NAME = 'Exe FuelbarMenubar'
+const APP_BUNDLE_NAME = 'ExeFuelbarMenubar.app'
+const ASSET_PATTERN = /^ExeFuelbarMenubar-.*\.zip$/
+const APP_PROCESS_NAME = 'ExeFuelbarMenubar'
 const SUPPORTED_OS = 'darwin'
 const MIN_MACOS_MAJOR = 14
 

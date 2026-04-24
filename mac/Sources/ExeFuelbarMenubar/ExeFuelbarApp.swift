@@ -11,7 +11,7 @@ private let popoverHeight: CGFloat = 660
 private let menubarTitleFontSize: CGFloat = 13
 
 @main
-struct Exe FuelbarApp: App {
+struct ExeFuelbarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     var body: some Scene {

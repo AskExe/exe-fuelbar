@@ -265,12 +265,12 @@ function buildReadme(periods: PeriodExport[]): string {
 /// exe-fuelbar export without ever deleting a user's unrelated files by accident.
 const EXPORT_MARKER_FILE = '.exe-fuelbar-export'
 
-async function isCodeburnExportFolder(path: string): Promise<boolean> {
+async function isExeFuelbarExportFolder(path: string): Promise<boolean> {
   const markerStat = await stat(join(path, EXPORT_MARKER_FILE)).catch(() => null)
   return markerStat?.isFile() ?? false
 }
 
-async function clearCodeburnExportFolder(path: string): Promise<void> {
+async function clearExeFuelbarExportFolder(path: string): Promise<void> {
   const entries = await readdir(path)
   for (const entry of entries) {
     await rm(join(path, entry), { recursive: true, force: true })
@@ -295,13 +295,13 @@ export async function exportCsv(periods: PeriodExport[], outputPath: string): Pr
     throw new Error(`Refusing to overwrite existing file at ${folder}. Pass a directory path instead.`)
   }
   if (existingStat?.isDirectory()) {
-    if (!(await isCodeburnExportFolder(folder))) {
+    if (!(await isExeFuelbarExportFolder(folder))) {
       throw new Error(
         `Refusing to reuse non-empty directory ${folder}: no ${EXPORT_MARKER_FILE} marker. ` +
         `Delete it manually or pick a different -o path.`
       )
     }
-    await clearCodeburnExportFolder(folder)
+    await clearExeFuelbarExportFolder(folder)
   }
   await mkdir(folder, { recursive: true })
   await writeFile(join(folder, EXPORT_MARKER_FILE), '', 'utf-8')

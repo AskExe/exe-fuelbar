@@ -9,11 +9,11 @@ vi.mock('os', async () => {
   const fs = await vi.importActual<typeof import('fs')>('fs')
   const fakeHome = fs.mkdtempSync(actual.tmpdir() + '/exe-fuelbar-home-')
   fs.mkdirSync(fakeHome + '/.claude', { recursive: true })
-  process.env['CODEBURN_TEST_FAKE_HOME'] = fakeHome
+  process.env['EXE_FUELBAR_TEST_FAKE_HOME'] = fakeHome
   return { ...actual, homedir: () => fakeHome }
 })
 
-const FAKE_HOME_FOR_MOCK = process.env['CODEBURN_TEST_FAKE_HOME']!
+const FAKE_HOME_FOR_MOCK = process.env['EXE_FUELBAR_TEST_FAKE_HOME']!
 
 import {
   detectBloatedClaudeMd,

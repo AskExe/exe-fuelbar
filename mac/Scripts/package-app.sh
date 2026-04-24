@@ -10,7 +10,7 @@ set -euo pipefail
 
 VERSION="${1:-dev}"
 BUNDLE_NAME="ExeFuelbarMenubar.app"
-BUNDLE_ID="org.agentseal.exe-fuelbar-menubar"
+BUNDLE_ID="com.askexe.exe-fuelbar-menubar"
 EXECUTABLE_NAME="ExeFuelbarMenubar"
 MIN_MACOS="14.0"
 
@@ -76,7 +76,7 @@ cat > "${BUNDLE}/Contents/Info.plist" <<PLIST
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>© AgentSeal</string>
+    <string>© Exe AI</string>
 </dict>
 </plist>
 PLIST

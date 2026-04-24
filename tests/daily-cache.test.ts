@@ -36,11 +36,11 @@ function emptyDay(date: string, cost = 0, calls = 0): DailyEntry {
 const TMP_CACHE_ROOT = join(tmpdir(), `exe-fuelbar-cache-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
 
 beforeEach(() => {
-  process.env['CODEBURN_CACHE_DIR'] = TMP_CACHE_ROOT
+  process.env['EXE_FUELBAR_CACHE_DIR'] = TMP_CACHE_ROOT
 })
 
 afterEach(async () => {
-  delete process.env['CODEBURN_CACHE_DIR']
+  delete process.env['EXE_FUELBAR_CACHE_DIR']
   if (existsSync(TMP_CACHE_ROOT)) {
     await rm(TMP_CACHE_ROOT, { recursive: true, force: true })
   }
