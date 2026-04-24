@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 473 456">
+  <!--
+    exe-fuelbar logo — Exe Foundry Bold brand
+    Fuel gauge icon: 240° arc with gold fill, needle, center pivot
+    Colors: Exe Gold #F5D76E, Aura #6B4C9A, Stratum #1A1832, Track #2A2745
+  -->
+
+  <!-- Gauge track base (full 240° arc, opening at bottom) -->
+  <path d="M 90 355 A 170 170 0 1 1 384 355"
+        fill="none" stroke="#2A2745" stroke-width="38" stroke-linecap="round"/>
+
+  <!-- Remaining fuel section (purple accent, ~55° unfilled portion) -->
+  <path d="M 391 198 A 170 170 0 0 1 384 355"
+        fill="none" stroke="#6B4C9A" stroke-width="38" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- Gold fill arc (77% fuel level, ~185°) -->
+  <path d="M 90 355 A 170 170 0 1 1 391 198"
+        fill="none" stroke="#F5D76E" stroke-width="38" stroke-linecap="round"/>
+
+  <!-- Needle — contrast outline for light-bg legibility -->
+  <line x1="237" y1="270" x2="368" y2="209"
+        stroke="#1A1832" stroke-width="14" stroke-linecap="round"/>
+  <!-- Needle — gold fill -->
+  <line x1="237" y1="270" x2="368" y2="209"
+        stroke="#F5D76E" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Center pivot — dark ring -->
+  <circle cx="237" cy="270" r="18" fill="#1A1832"/>
+  <!-- Center pivot — gold face -->
+  <circle cx="237" cy="270" r="15" fill="#F5D76E"/>
+  <!-- Center pivot — dark inner dot -->
+  <circle cx="237" cy="270" r="7" fill="#1A1832"/>
+</svg>
