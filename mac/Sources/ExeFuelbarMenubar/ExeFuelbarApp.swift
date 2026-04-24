@@ -11,7 +11,7 @@ private let popoverHeight: CGFloat = 660
 private let menubarTitleFontSize: CGFloat = 13
 
 @main
-struct CodeBurnApp: App {
+struct Exe FuelbarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     var body: some Scene {
@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         ProcessInfo.processInfo.disableSuddenTermination()
         backgroundActivity = ProcessInfo.processInfo.beginActivity(
             options: [.userInitiated, .automaticTerminationDisabled, .suddenTerminationDisabled],
-            reason: "CodeBurn menubar polls AI coding cost every 15 seconds while idle in the background."
+            reason: "Exe Fuelbar menubar polls AI coding cost every 15 seconds while idle in the background."
         )
 
         restorePersistedCurrency()
@@ -73,7 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func setupDistributedNotificationListener() {
         DistributedNotificationCenter.default().addObserver(
-            forName: NSNotification.Name("com.codeburn.refresh"),
+            forName: NSNotification.Name("com.exe-fuelbar.refresh"),
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -83,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func installLaunchAgentIfNeeded() {
         let fm = FileManager.default
-        let agentName = "com.codeburn.refresh.plist"
+        let agentName = "com.exe-fuelbar.refresh.plist"
         let home = fm.homeDirectoryForCurrentUser.path
         let destPath = "\(home)/Library/LaunchAgents/\(agentName)"
 
@@ -93,14 +93,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.codeburn.refresh</string>
+    <string>com.exe-fuelbar.refresh</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/bin/osascript</string>
         <string>-l</string>
         <string>JavaScript</string>
         <string>-e</string>
-        <string>ObjC.import("Foundation"); $.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately("com.codeburn.refresh", $(), $(), true)</string>
+        <string>ObjC.import("Foundation"); $.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately("com.exe-fuelbar.refresh", $(), $(), true)</string>
     </array>
     <key>StartInterval</key>
     <integer>15</integer>
@@ -129,7 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             try load.run()
             load.waitUntilExit()
         } catch {
-            NSLog("CodeBurn: LaunchAgent setup failed: \(error)")
+            NSLog("Exe Fuelbar: LaunchAgent setup failed: \(error)")
         }
     }
 
@@ -142,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
-    /// Loads the currency code persisted by `codeburn currency` so a relaunch picks up where
+    /// Loads the currency code persisted by `exe-fuelbar currency` so a relaunch picks up where
     /// the user left off. Rate is resolved from the on-disk FX cache if present, otherwise
     /// fetched live in the background.
     private func restorePersistedCurrency() {
@@ -208,7 +208,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     // MARK: - Status Item
 
     private var isCompact: Bool {
-        UserDefaults.standard.bool(forKey: "CodeBurnMenubarCompact")
+        UserDefaults.standard.bool(forKey: "ExeFuelbarMenubarCompact")
     }
 
     private func setupStatusItem() {
@@ -234,7 +234,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         let font = NSFont.monospacedDigitSystemFont(ofSize: menubarTitleFontSize, weight: .medium)
         let flameConfig = NSImage.SymbolConfiguration(pointSize: menubarTitleFontSize, weight: .medium)
-        let flame = NSImage(systemSymbolName: "flame.fill", accessibilityDescription: "CodeBurn")?
+        let flame = NSImage(systemSymbolName: "flame.fill", accessibilityDescription: "Exe Fuelbar")?
             .withSymbolConfiguration(flameConfig)
         flame?.isTemplate = true
 

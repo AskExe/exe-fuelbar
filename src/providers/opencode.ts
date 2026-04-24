@@ -128,13 +128,13 @@ function createParser(
       try {
         db = openDatabase(dbPath)
       } catch (err) {
-        process.stderr.write(`codeburn: cannot open OpenCode database: ${err instanceof Error ? err.message : err}\n`)
+        process.stderr.write(`exe-fuelbar: cannot open OpenCode database: ${err instanceof Error ? err.message : err}\n`)
         return
       }
 
       try {
         if (!validateSchema(db)) {
-          process.stderr.write('codeburn: OpenCode storage format not recognized. You may need to update CodeBurn.\n')
+          process.stderr.write('exe-fuelbar: OpenCode storage format not recognized. You may need to update Exe Fuelbar.\n')
           return
         }
 

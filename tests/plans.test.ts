@@ -28,7 +28,7 @@ describe('plan presets', () => {
 
 describe('plan config persistence', () => {
   it('round-trips savePlan/readPlan and clearPlan', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'codeburn-plan-test-'))
+    const dir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-plan-test-'))
     const previousHome = process.env['HOME']
     process.env['HOME'] = dir
 

@@ -257,13 +257,13 @@ struct FlameMark: View {
     }
 }
 
-private let starBannerGitHubURL = URL(string: "https://github.com/getagentseal/codeburn")!
+private let starBannerGitHubURL = URL(string: "https://github.com/AskExe/exe-fuelbar")!
 
 /// Shown at the very bottom on first launch. A small terracotta strip nudges users to star the
 /// repo; clicking opens GitHub, clicking the close icon hides it forever (persisted to
 /// UserDefaults so it never returns across launches).
 struct StarBanner: View {
-    @AppStorage("codeburn.starBannerDismissed") private var dismissed: Bool = false
+    @AppStorage("exe-fuelbar.starBannerDismissed") private var dismissed: Bool = false
 
     var body: some View {
         if !dismissed {
@@ -276,7 +276,7 @@ struct StarBanner: View {
                     NSWorkspace.shared.open(starBannerGitHubURL)
                 } label: {
                     HStack(spacing: 4) {
-                        Text("Enjoying CodeBurn?")
+                        Text("Enjoying Exe Fuelbar?")
                             .foregroundStyle(.primary)
                         Text("Star us on GitHub")
                             .foregroundStyle(Theme.brandAccent)
@@ -390,7 +390,7 @@ struct FooterBar: View {
         var suffix: String { self == .csv ? "" : ".json" }
     }
 
-    /// Runs `codeburn export` directly into ~/Downloads and reveals the result in Finder. CSV
+    /// Runs `exe-fuelbar export` directly into ~/Downloads and reveals the result in Finder. CSV
     /// produces a folder of clean one-table-per-file CSVs; JSON produces a single structured
     /// file. The CLI is spawned with argv (no shell interpretation), so the output path cannot
     /// be abused to inject shell commands even if a pathological value slips through.
@@ -399,10 +399,10 @@ struct FooterBar: View {
             let downloads = (NSHomeDirectory() as NSString).appendingPathComponent("Downloads")
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
-            let base = "codeburn-\(formatter.string(from: Date()))"
+            let base = "exe-fuelbar-\(formatter.string(from: Date()))"
             let outputPath = (downloads as NSString).appendingPathComponent(base + format.suffix)
 
-            let process = CodeburnCLI.makeProcess(subcommand: [
+            let process = ExeFuelbarCLI.makeProcess(subcommand: [
                 "export", "-f", format.cliName, "-o", outputPath
             ])
 
@@ -412,17 +412,17 @@ struct FooterBar: View {
                 if process.terminationStatus == 0 {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: outputPath)])
                 } else {
-                    NSLog("CodeBurn: \(format.cliName.uppercased()) export exited with status \(process.terminationStatus)")
+                    NSLog("Exe Fuelbar: \(format.cliName.uppercased()) export exited with status \(process.terminationStatus)")
                 }
             } catch {
-                NSLog("CodeBurn: \(format.cliName.uppercased()) export failed: \(error)")
+                NSLog("Exe Fuelbar: \(format.cliName.uppercased()) export failed: \(error)")
             }
         }
     }
 
     /// Instant-feeling currency switch. Updates the symbol and any cached FX rate on the main
      /// thread right away so the UI redraws the next frame, then fetches a fresh rate in the
-     /// background. CLI config is persisted so other codeburn commands stay in sync.
+     /// background. CLI config is persisted so other exe-fuelbar commands stay in sync.
     private func applyCurrency(code: String) {
         store.currency = code
         let symbol = CurrencyState.symbolForCode(code)

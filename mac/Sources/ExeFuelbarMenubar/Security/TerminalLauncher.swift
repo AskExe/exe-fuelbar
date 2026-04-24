@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 /// Runs commands in the user's Terminal. Every string that reaches AppleScript `do script`
-/// must be whitespace-joined argv where each token passes `CodeburnCLI.isSafe` (regex allowlist
+/// must be whitespace-joined argv where each token passes `ExeFuelbarCLI.isSafe` (regex allowlist
 /// that excludes shell metacharacters), OR a hardcoded literal defined here. The private
 /// `runInTerminal` re-validates any non-literal input defensively so a future caller can't
 /// bypass the invariant.
@@ -15,9 +15,9 @@ enum TerminalLauncher {
     ]
 
     static func open(subcommand: [String]) {
-        let argv = CodeburnCLI.baseArgv() + subcommand
-        guard argv.allSatisfy(CodeburnCLI.isSafe) else {
-            NSLog("CodeBurn: refusing to open terminal with unsafe argv")
+        let argv = ExeFuelbarCLI.baseArgv() + subcommand
+        guard argv.allSatisfy(ExeFuelbarCLI.isSafe) else {
+            NSLog("Exe Fuelbar: refusing to open terminal with unsafe argv")
             return
         }
         let command = argv.joined(separator: " ")
@@ -27,16 +27,16 @@ enum TerminalLauncher {
             return
         }
 
-        let headless = CodeburnCLI.makeProcess(subcommand: subcommand)
+        let headless = ExeFuelbarCLI.makeProcess(subcommand: subcommand)
         try? headless.run()
     }
 
     /// Launches `claude login` in Terminal.app so the user can complete the OAuth flow
-    /// without leaving CodeBurn. The command is a hardcoded literal -- no user input is
+    /// without leaving Exe Fuelbar. The command is a hardcoded literal -- no user input is
     /// interpolated, so there's no injection surface.
     static func openClaudeLogin() -> Bool {
         guard terminalPaths.contains(where: FileManager.default.fileExists(atPath:)) else {
-            NSLog("CodeBurn: Terminal.app not present; user must run `claude login` manually")
+            NSLog("Exe Fuelbar: Terminal.app not present; user must run `claude login` manually")
             return false
         }
         runInTerminal(command: "claude login", preValidated: true)
@@ -46,8 +46,8 @@ enum TerminalLauncher {
     private static func runInTerminal(command: String, preValidated: Bool) {
         if !preValidated {
             let tokens = command.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
-            guard tokens.allSatisfy(CodeburnCLI.isSafe) else {
-                NSLog("CodeBurn: refusing to run unvalidated command in Terminal")
+            guard tokens.allSatisfy(ExeFuelbarCLI.isSafe) else {
+                NSLog("Exe Fuelbar: refusing to run unvalidated command in Terminal")
                 return
             }
         }

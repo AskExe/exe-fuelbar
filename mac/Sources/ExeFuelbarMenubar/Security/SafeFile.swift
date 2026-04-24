@@ -2,8 +2,8 @@ import Foundation
 
 /// Symlink-safe file I/O with atomic writes and optional cross-process flock.
 ///
-/// Every cache file we touch (`~/Library/Caches/codeburn-mac/fx-rates.json`,
-/// `~/.cache/codeburn/subscription-snapshots.json`, `~/.config/codeburn/config.json`) is a
+/// Every cache file we touch (`~/Library/Caches/exe-fuelbar-mac/fx-rates.json`,
+/// `~/.cache/exe-fuelbar/subscription-snapshots.json`, `~/.config/exe-fuelbar/config.json`) is a
 /// legitimate target for a local-symlink attack: if an attacker plants a symlink from one of
 /// those paths to, say, `~/.ssh/config`, a naive `Data.write(to:)` blindly follows the link and
 /// clobbers the real file. `O_NOFOLLOW` on the write() refuses the operation instead.
@@ -38,7 +38,7 @@ enum SafeFile {
             throw Error.symlinkDetected(path)
         }
 
-        let tmpPath = parent + "/.codeburn-" + UUID().uuidString + ".tmp"
+        let tmpPath = parent + "/.exe-fuelbar-" + UUID().uuidString + ".tmp"
         let flags: Int32 = O_CREAT | O_WRONLY | O_EXCL | O_NOFOLLOW
         let fd = Darwin.open(tmpPath, flags, mode)
         guard fd >= 0 else {
@@ -103,7 +103,7 @@ enum SafeFile {
 
     /// Runs `body` while holding an exclusive POSIX advisory lock on `path`. The lock file is
     /// created if missing (with 0o600 permissions) and released on scope exit, so other
-    /// codeburn processes (the CLI running in a terminal, say) block on the same file instead
+    /// exe-fuelbar processes (the CLI running in a terminal, say) block on the same file instead
     /// of racing on a shared config.
     static func withExclusiveLock<T>(at path: String, body: () throws -> T) throws -> T {
         let parent = (path as NSString).deletingLastPathComponent

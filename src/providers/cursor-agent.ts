@@ -302,7 +302,7 @@ function createParser(
         const parsed = parseTranscript(transcript)
 
         if (!parsed.recognized) {
-          process.stderr.write(`codeburn: skipped ${basename(source.path)}: unrecognized cursor-agent transcript format\n`)
+          process.stderr.write(`exe-fuelbar: skipped ${basename(source.path)}: unrecognized cursor-agent transcript format\n`)
           return
         }
 

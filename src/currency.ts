@@ -55,7 +55,7 @@ function getFractionDigits(code: string): number {
 }
 
 function getCacheDir(): string {
-  return join(homedir(), '.cache', 'codeburn')
+  return join(homedir(), '.cache', 'exe-fuelbar')
 }
 
 function getRateCachePath(): string {

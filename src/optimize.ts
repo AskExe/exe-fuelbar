@@ -1068,7 +1068,7 @@ function renderOptimize(
 ): string {
   const lines: string[] = []
   lines.push('')
-  lines.push(`  ${chalk.bold.hex(ORANGE)('CodeBurn config health')}${chalk.dim('  ' + periodLabel)}`)
+  lines.push(`  ${chalk.bold.hex(ORANGE)('Exe Fuelbar config health')}${chalk.dim('  ' + periodLabel)}`)
   lines.push(chalk.hex(DIM)('  ' + SEP.repeat(PANEL_WIDTH)))
 
   const issueSuffix = findings.length > 0 ? `, ${findings.length} issue${findings.length > 1 ? 's' : ''}` : ''
@@ -1083,7 +1083,7 @@ function renderOptimize(
   if (findings.length === 0) {
     lines.push(chalk.hex(GREEN)('  Nothing to fix. Your setup is lean.'))
     lines.push('')
-    lines.push(chalk.dim('  CodeBurn optimize scans your Claude Code sessions and config for'))
+    lines.push(chalk.dim('  Exe Fuelbar optimize scans your Claude Code sessions and config for'))
     lines.push(chalk.dim('  token waste: junk directory reads, duplicate file reads, unused'))
     lines.push(chalk.dim('  agents/skills/MCP servers, bloated CLAUDE.md, and more.'))
     lines.push('')

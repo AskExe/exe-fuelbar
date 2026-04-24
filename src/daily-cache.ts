@@ -37,7 +37,7 @@ export type DailyCache = {
 }
 
 function getCacheDir(): string {
-  return process.env['CODEBURN_CACHE_DIR'] ?? join(homedir(), '.cache', 'codeburn')
+  return process.env['CODEBURN_CACHE_DIR'] ?? join(homedir(), '.cache', 'exe-fuelbar')
 }
 
 function getCachePath(): string {

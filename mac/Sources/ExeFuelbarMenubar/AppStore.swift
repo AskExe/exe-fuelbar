@@ -84,7 +84,7 @@ final class AppStore {
             lastError = nil
         } catch {
             lastError = String(describing: error)
-            NSLog("CodeBurn: fetch failed for \(key.period.rawValue)/\(key.provider.rawValue): \(error)")
+            NSLog("Exe Fuelbar: fetch failed for \(key.period.rawValue)/\(key.provider.rawValue): \(error)")
         }
     }
 
@@ -96,7 +96,7 @@ final class AppStore {
             let fresh = try await DataClient.fetch(period: period, provider: .all, includeOptimize: true)
             cache[PayloadCacheKey(period: period, provider: .all)] = CachedPayload(payload: fresh, fetchedAt: Date())
         } catch {
-            NSLog("CodeBurn: quiet refresh failed for \(period.rawValue): \(error)")
+            NSLog("Exe Fuelbar: quiet refresh failed for \(period.rawValue): \(error)")
         }
     }
 
@@ -118,7 +118,7 @@ final class AppStore {
             subscription = nil
             subscriptionError = String(describing: error)
             subscriptionLoadState = .failed
-            NSLog("CodeBurn: subscription fetch failed: \(error)")
+            NSLog("Exe Fuelbar: subscription fetch failed: \(error)")
         }
     }
 

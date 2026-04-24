@@ -234,7 +234,7 @@ function buildReadme(periods: PeriodExport[]): string {
   const { code } = getCurrency()
   const generated = new Date().toISOString()
   const lines = [
-    'CodeBurn Usage Export',
+    'Exe Fuelbar Usage Export',
     '====================',
     '',
     `Generated: ${generated}`,
@@ -262,8 +262,8 @@ function buildReadme(periods: PeriodExport[]): string {
 }
 
 /// Sentinel file dropped into every folder we create so we can safely overwrite an older
-/// codeburn export without ever deleting a user's unrelated files by accident.
-const EXPORT_MARKER_FILE = '.codeburn-export'
+/// exe-fuelbar export without ever deleting a user's unrelated files by accident.
+const EXPORT_MARKER_FILE = '.exe-fuelbar-export'
 
 async function isCodeburnExportFolder(path: string): Promise<boolean> {
   const markerStat = await stat(join(path, EXPORT_MARKER_FILE)).catch(() => null)
@@ -279,7 +279,7 @@ async function clearCodeburnExportFolder(path: string): Promise<void> {
 
 /// Writes a folder of one-table-per-file CSVs. The outputPath is treated as a directory. If it
 /// ends in `.csv` the extension is stripped to form the folder name. Refuses to delete a
-/// pre-existing file or a non-codeburn folder, so a typo like `-o ~/.ssh/id_ed25519` can't
+/// pre-existing file or a non-exe-fuelbar folder, so a typo like `-o ~/.ssh/id_ed25519` can't
 /// wipe a sensitive file (prior versions did `rm(path, { force: true })` unconditionally).
 export async function exportCsv(periods: PeriodExport[], outputPath: string): Promise<string> {
   const thirtyDays = periods.find(p => p.label === '30 Days')
@@ -329,7 +329,7 @@ export async function exportJson(periods: PeriodExport[], outputPath: string): P
   const { code, rate, symbol } = getCurrency()
 
   const data = {
-    schema: 'codeburn.export.v2',
+    schema: 'exe-fuelbar.export.v2',
     generated: new Date().toISOString(),
     currency: { code, rate, symbol },
     summary: buildSummaryRows(periods),

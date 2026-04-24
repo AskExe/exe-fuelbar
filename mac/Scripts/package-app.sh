@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds a universal CodeBurnMenubar.app bundle from the SwiftPM target and drops a
+# Builds a universal ExeFuelbarMenubar.app bundle from the SwiftPM target and drops a
 # distributable zip alongside. Used by the GitHub release workflow; also runnable locally.
 #
 # Usage:
@@ -9,9 +9,9 @@
 set -euo pipefail
 
 VERSION="${1:-dev}"
-BUNDLE_NAME="CodeBurnMenubar.app"
-BUNDLE_ID="org.agentseal.codeburn-menubar"
-EXECUTABLE_NAME="CodeBurnMenubar"
+BUNDLE_NAME="ExeFuelbarMenubar.app"
+BUNDLE_ID="org.agentseal.exe-fuelbar-menubar"
+EXECUTABLE_NAME="ExeFuelbarMenubar"
 MIN_MACOS="14.0"
 
 repo_root() {
@@ -52,7 +52,7 @@ cat > "${BUNDLE}/Contents/Info.plist" <<PLIST
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>CodeBurn Menubar</string>
+    <string>Exe Fuelbar Menubar</string>
     <key>CFBundleExecutable</key>
     <string>${EXECUTABLE_NAME}</string>
     <key>CFBundleIconFile</key>
@@ -93,7 +93,7 @@ echo "▸ Ad-hoc signing..."
 codesign --force --sign - --timestamp=none --deep "${BUNDLE}" 2>/dev/null || true
 codesign --verify --deep --strict "${BUNDLE}" 2>/dev/null || echo "  (signature verify skipped)"
 
-ZIP_NAME="CodeBurnMenubar-${VERSION}.zip"
+ZIP_NAME="ExeFuelbarMenubar-${VERSION}.zip"
 ZIP_PATH="${DIST_DIR}/${ZIP_NAME}"
 echo "▸ Packaging ${ZIP_NAME}..."
 (cd "${DIST_DIR}" && /usr/bin/ditto -c -k --keepParent "${BUNDLE_NAME}" "${ZIP_NAME}")

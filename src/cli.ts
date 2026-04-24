@@ -133,7 +133,7 @@ async function runJsonReport(period: Period, provider: string, project: string[]
 }
 
 const program = new Command()
-  .name('codeburn')
+  .name('exe-fuelbar')
   .description('See where your AI coding tokens go - by task, tool, model, and project')
   .version(version)
   .option('--verbose', 'print warnings to stderr on read failures and skipped files')
@@ -142,7 +142,7 @@ program.hook('preAction', async (thisCommand) => {
   const config = await readConfig()
   setModelAliases(config.modelAliases ?? {})
   if (thisCommand.opts<{ verbose?: boolean }>().verbose) {
-    process.env['CODEBURN_VERBOSE'] = '1'
+    process.env['EXE_FUELBAR_VERBOSE'] = '1'
   }
   await loadCurrency()
 })
@@ -601,7 +601,7 @@ program
       return
     }
 
-    const defaultName = `codeburn-${toDateString(new Date())}`
+    const defaultName = `exe-fuelbar-${toDateString(new Date())}`
     const outputPath = opts.output ?? `${defaultName}.${opts.format}`
 
     let savedPath: string
@@ -612,7 +612,7 @@ program
         savedPath = await exportCsv(periods, outputPath)
       }
     } catch (err) {
-      // Protection guards in export.ts (symlink refusal, non-codeburn folder refusal, etc.)
+      // Protection guards in export.ts (symlink refusal, non-exe-fuelbar folder refusal, etc.)
       // throw with a user-readable message. Print just the message, not the stack, so the CLI
       // doesn't spray its internals at the user.
       const message = err instanceof Error ? err.message : String(err)
@@ -640,7 +640,7 @@ program
 
 program
   .command('currency [code]')
-  .description('Set display currency (e.g. codeburn currency GBP)')
+  .description('Set display currency (e.g. exe-fuelbar currency GBP)')
   .option('--symbol <symbol>', 'Override the currency symbol')
   .option('--reset', 'Reset to USD (removes currency config)')
   .action(async (code?: string, opts?: { symbol?: string; reset?: boolean }) => {
@@ -691,7 +691,7 @@ program
 
 program
   .command('model-alias [from] [to]')
-  .description('Map a provider model name to a canonical one for pricing (e.g. codeburn model-alias my-model claude-opus-4-6)')
+  .description('Map a provider model name to a canonical one for pricing (e.g. exe-fuelbar model-alias my-model claude-opus-4-6)')
   .option('--remove <from>', 'Remove an alias')
   .option('--list', 'List configured aliases')
   .action(async (from?: string, to?: string, opts?: { remove?: string; list?: boolean }) => {
@@ -727,7 +727,7 @@ program
     }
 
     if (!from || !to) {
-      console.error('\n  Usage: codeburn model-alias <from> <to>\n')
+      console.error('\n  Usage: exe-fuelbar model-alias <from> <to>\n')
       process.exitCode = 1
       return
     }
@@ -786,7 +786,7 @@ program
     }
 
     if (mode !== 'set') {
-      console.error('\n  Usage: codeburn plan [set <id> | reset]\n')
+      console.error('\n  Usage: exe-fuelbar plan [set <id> | reset]\n')
       process.exitCode = 1
       return
     }

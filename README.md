@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/getagentseal/codeburn@main/assets/logo.png" alt="CodeBurn" width="120" />
+  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/logo.png" alt="CodeBurn" width="120" />
 </p>
 
 <h1 align="center">CodeBurn</h1>
@@ -9,13 +9,13 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/codeburn"><img src="https://img.shields.io/npm/v/codeburn.svg" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/codeburn"><img src="https://img.shields.io/npm/dt/codeburn.svg" alt="total downloads" /></a>
-  <a href="https://github.com/getagentseal/codeburn/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/codeburn.svg" alt="license" /></a>
-  <a href="https://github.com/getagentseal/codeburn"><img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg" alt="node version" /></a>
+  <a href="https://github.com/AskExe/exe-fuelbar/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/codeburn.svg" alt="license" /></a>
+  <a href="https://github.com/AskExe/exe-fuelbar"><img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg" alt="node version" /></a>
   <a href="https://discord.gg/pJ2DMWvtAx"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/getagentseal/codeburn/main/assets/dashboard.jpg" alt="CodeBurn TUI dashboard" width="620" />
+  <img src="https://raw.githubusercontent.com/AskExe/exe-fuelbar/main/assets/dashboard.jpg" alt="CodeBurn TUI dashboard" width="620" />
 </p>
 
 By task type, tool, model, MCP server, and project. Supports **Claude Code**, **Codex** (OpenAI), **Cursor**, **cursor-agent**, **OpenCode**, **Pi**, **[OMP](https://github.com/can1357/oh-my-pi)** (Oh My Pi), and **GitHub Copilot** with a provider plugin system. Tracks one-shot success rate per activity type so you can see where the AI nails it first try vs. burns tokens on edit/test/fix retries. Interactive TUI dashboard with gradient charts, responsive panels, and keyboard navigation. Native macOS menubar app in `mac/`. CSV/JSON export.
@@ -204,7 +204,7 @@ The progress bar shows API-equivalent cost vs subscription price. Presets use pu
 
 ## Menu Bar
 
-<img src="https://cdn.jsdelivr.net/gh/getagentseal/codeburn@main/assets/menubar-0.8.0.png" alt="CodeBurn macOS menubar app" width="420" />
+<img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/menubar-0.8.0.png" alt="CodeBurn macOS menubar app" width="420" />
 
 ```bash
 npx codeburn menubar
@@ -268,7 +268,7 @@ These are starting points, not verdicts. A 60% cache hit on a single experimenta
 Once you know what to look for, `codeburn optimize` scans your sessions and your `~/.claude/` setup for the most common waste patterns and hands back exact, copy-paste fixes. It never writes to your files.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/getagentseal/codeburn/main/assets/optimize.jpg" alt="CodeBurn optimize output" width="720" />
+  <img src="https://raw.githubusercontent.com/AskExe/exe-fuelbar/main/assets/optimize.jpg" alt="CodeBurn optimize output" width="720" />
 </p>
 
 ```bash
@@ -376,9 +376,9 @@ src/
 
 <a href="https://www.star-history.com/?repos=getagentseal%2Fcodeburn&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=getagentseal/codeburn&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=getagentseal/codeburn&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=getagentseal/codeburn&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=AskExe/exe-fuelbar&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=AskExe/exe-fuelbar&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=AskExe/exe-fuelbar&type=date&legend=top-left" />
  </picture>
 </a>
 
@@ -390,4 +390,4 @@ MIT
 
 Inspired by [ccusage](https://github.com/ryoppippi/ccusage) and [CodexBar](https://github.com/nicklama/codexbar). Pricing data from [LiteLLM](https://github.com/BerriAI/litellm). Exchange rates from [Frankfurter](https://www.frankfurter.app/).
 
-Built by [AgentSeal](https://agentseal.org).
+Built by [Exe AI](https://agentseal.org).

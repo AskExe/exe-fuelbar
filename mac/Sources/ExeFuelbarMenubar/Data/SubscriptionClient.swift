@@ -79,7 +79,7 @@ struct SubscriptionClient {
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecItemNotFound { return nil }
         guard status == errSecSuccess, let data = result as? Data else {
-            NSLog("CodeBurn: keychain query failed status=\(status)")
+            NSLog("Exe Fuelbar: keychain query failed status=\(status)")
             return nil
         }
         return try parseCredentials(data: sanitizeKeychainData(data))

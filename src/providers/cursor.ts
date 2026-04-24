@@ -201,7 +201,7 @@ function parseBubbles(db: SqliteDatabase, seenKeys: Set<string>): { calls: Parse
   }
 
   if (skipped > 0) {
-    process.stderr.write(`codeburn: skipped ${skipped} unreadable Cursor entries\n`)
+    process.stderr.write(`exe-fuelbar: skipped ${skipped} unreadable Cursor entries\n`)
   }
 
   return { calls: results }
@@ -229,13 +229,13 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
       try {
         db = openDatabase(source.path)
       } catch (err) {
-        process.stderr.write(`codeburn: cannot open Cursor database: ${err instanceof Error ? err.message : err}\n`)
+        process.stderr.write(`exe-fuelbar: cannot open Cursor database: ${err instanceof Error ? err.message : err}\n`)
         return
       }
 
       try {
         if (!validateSchema(db)) {
-          process.stderr.write('codeburn: Cursor storage format not recognized. You may need to update CodeBurn.\n')
+          process.stderr.write('exe-fuelbar: Cursor storage format not recognized. You may need to update Exe Fuelbar.\n')
           return
         }
 

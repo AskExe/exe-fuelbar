@@ -23,7 +23,7 @@ export type CodeburnConfig = {
 }
 
 function getConfigDir(): string {
-  return join(homedir(), '.config', 'codeburn')
+  return join(homedir(), '.config', 'exe-fuelbar')
 }
 
 function getConfigPath(): string {

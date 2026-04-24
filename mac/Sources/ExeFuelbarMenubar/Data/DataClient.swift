@@ -16,7 +16,7 @@ enum DataClientError: Error {
     case outputTooLarge
 }
 
-/// Runs the CLI via argv (no shell interpretation). See `CodeburnCLI` for why we never route
+/// Runs the CLI via argv (no shell interpretation). See `ExeFuelbarCLI` for why we never route
 /// commands through `/bin/zsh -c` anymore.
 struct DataClient {
     static func fetch(period: Period, provider: ProviderFilter, includeOptimize: Bool) async throws -> MenubarPayload {
@@ -48,7 +48,7 @@ struct DataClient {
     }
 
     private static func runCLI(subcommand: [String]) async throws -> ProcessResult {
-        let process = CodeburnCLI.makeProcess(subcommand: subcommand)
+        let process = ExeFuelbarCLI.makeProcess(subcommand: subcommand)
 
         let outPipe = Pipe()
         let errPipe = Pipe()

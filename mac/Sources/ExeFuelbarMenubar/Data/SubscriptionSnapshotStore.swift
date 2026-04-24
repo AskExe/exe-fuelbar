@@ -15,8 +15,8 @@ private let snapshotFilename = "subscription-snapshots.json"
 private let pruneOlderThanSeconds: TimeInterval = 30 * 24 * 3600
 
 private func snapshotsCacheDir() -> String {
-    return ProcessInfo.processInfo.environment["CODEBURN_CACHE_DIR"]
-        ?? (NSHomeDirectory() as NSString).appendingPathComponent(".cache/codeburn")
+    return ProcessInfo.processInfo.environment["EXE_FUELBAR_CACHE_DIR"]
+        ?? (NSHomeDirectory() as NSString).appendingPathComponent(".cache/exe-fuelbar")
 }
 
 private func snapshotsPath() -> String {
@@ -48,7 +48,7 @@ enum SubscriptionSnapshotStore {
                 all = all.filter { $0.capturedAt >= cutoff }
                 try save(all)
             } catch {
-                NSLog("CodeBurn: snapshot record failed: \(error)")
+                NSLog("Exe Fuelbar: snapshot record failed: \(error)")
             }
         }
     }

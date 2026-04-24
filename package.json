@@ -1,11 +1,11 @@
 {
-  "name": "codeburn",
-  "version": "0.8.9",
+  "name": "exe-fuelbar",
+  "version": "0.1.0",
   "description": "See where your AI coding tokens go - by task, tool, model, and project",
   "type": "module",
   "main": "./dist/cli.js",
   "bin": {
-    "codeburn": "dist/cli.js"
+    "exe-fuelbar": "dist/cli.js"
   },
   "files": [
     "dist"
@@ -31,16 +31,16 @@
   "engines": {
     "node": ">=22"
   },
-  "author": "AgentSeal <hello@agentseal.org>",
+  "author": "Exe AI <hello@askexe.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/getagentseal/codeburn.git"
+    "url": "git+https://github.com/AskExe/exe-fuelbar.git"
   },
   "bugs": {
-    "url": "https://github.com/getagentseal/codeburn/issues"
+    "url": "https://github.com/AskExe/exe-fuelbar/issues"
   },
-  "homepage": "https://github.com/getagentseal/codeburn#readme",
+  "homepage": "https://github.com/AskExe/exe-fuelbar#readme",
   "dependencies": {
     "chalk": "^5.4.1",
     "commander": "^13.1.0",

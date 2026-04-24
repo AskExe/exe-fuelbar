@@ -2,25 +2,25 @@
 import PackageDescription
 
 let package = Package(
-    name: "CodeBurnMenubar",
+    name: "ExeFuelbarMenubar",
     platforms: [
         .macOS(.v14)
     ],
     products: [
-        .executable(name: "CodeBurnMenubar", targets: ["CodeBurnMenubar"])
+        .executable(name: "ExeFuelbarMenubar", targets: ["ExeFuelbarMenubar"])
     ],
     targets: [
         .executableTarget(
-            name: "CodeBurnMenubar",
-            path: "Sources/CodeBurnMenubar",
+            name: "ExeFuelbarMenubar",
+            path: "Sources/ExeFuelbarMenubar",
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")
             ]
         ),
         .testTarget(
-            name: "CodeBurnMenubarTests",
-            dependencies: ["CodeBurnMenubar"],
-            path: "Tests/CodeBurnMenubarTests"
+            name: "ExeFuelbarMenubarTests",
+            dependencies: ["ExeFuelbarMenubar"],
+            path: "Tests/ExeFuelbarMenubarTests"
         )
     ]
 )

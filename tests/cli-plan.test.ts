@@ -16,15 +16,15 @@ function runCli(args: string[], home: string) {
   })
 }
 
-describe('codeburn plan command', () => {
+describe('exe-fuelbar plan command', () => {
   it('persists plan set and clears on reset', async () => {
-    const home = await mkdtemp(join(tmpdir(), 'codeburn-cli-plan-'))
+    const home = await mkdtemp(join(tmpdir(), 'exe-fuelbar-cli-plan-'))
 
     try {
       const setResult = runCli(['plan', 'set', 'claude-max'], home)
       expect(setResult.status).toBe(0)
 
-      const configPath = join(home, '.config', 'codeburn', 'config.json')
+      const configPath = join(home, '.config', 'exe-fuelbar', 'config.json')
       const configRaw = await readFile(configPath, 'utf-8')
       const config = JSON.parse(configRaw) as { plan?: { id?: string; monthlyUsd?: number } }
       expect(config.plan?.id).toBe('claude-max')
@@ -42,7 +42,7 @@ describe('codeburn plan command', () => {
   })
 
   it('shows invalid reset-day value in error output', async () => {
-    const home = await mkdtemp(join(tmpdir(), 'codeburn-cli-plan-'))
+    const home = await mkdtemp(join(tmpdir(), 'exe-fuelbar-cli-plan-'))
 
     try {
       const result = runCli(['plan', 'set', 'claude-max', '--reset-day', '99'], home)

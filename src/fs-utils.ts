@@ -9,11 +9,11 @@ export const MAX_SESSION_FILE_BYTES = 128 * 1024 * 1024
 export const STREAM_THRESHOLD_BYTES = 8 * 1024 * 1024
 
 function verbose(): boolean {
-  return process.env.CODEBURN_VERBOSE === '1'
+  return process.env.EXE_FUELBAR_VERBOSE === '1'
 }
 
 function warn(msg: string): void {
-  if (verbose()) process.stderr.write(`codeburn: ${msg}\n`)
+  if (verbose()) process.stderr.write(`exe-fuelbar: ${msg}\n`)
 }
 
 async function readViaStream(filePath: string): Promise<string> {
