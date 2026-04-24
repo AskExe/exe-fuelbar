@@ -40,3 +40,6 @@ assets/discord-*.png
 
 # Desktop app experiments
 desktop/
+
+# Employee task assignments (private)
+/exe/
