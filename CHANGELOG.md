@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 (2026-04-25)
+
+### Fixes
+- Fix timezone-fragile day aggregator test (near-midnight UTC → stable midday)
+- Bump version for npm publish
+
 ## 0.1.0 (2026-04-24)
 
 ### Fork & Rebrand
