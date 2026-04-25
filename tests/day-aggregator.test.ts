@@ -129,14 +129,15 @@ describe('aggregateProjectsIntoDays', () => {
     })
   })
 
-  it('counts a session under its firstTimestamp date', () => {
+  it('counts a session under its firstTimestamp local date', () => {
+    // Use a midday timestamp so the local date is the same regardless of timezone
     const projects: ProjectSummary[] = [
       makeProject({
         sessions: [{
           sessionId: 's1',
           project: 'p',
-          firstTimestamp: '2026-04-09T23:59:00Z',
-          lastTimestamp: '2026-04-10T00:10:00Z',
+          firstTimestamp: '2026-04-09T12:00:00Z',
+          lastTimestamp: '2026-04-09T13:10:00Z',
           totalCostUSD: 1,
           totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheWriteTokens: 0,
           apiCalls: 0,
