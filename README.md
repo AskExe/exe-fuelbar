@@ -2,7 +2,12 @@
   <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/logo.png" alt="Exe Fuelbar" width="120" />
 </p>
 
-<h1 align="center">Exe Fuelbar</h1>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/title.svg" />
+    <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/title.svg" alt="EXE FUELBAR" width="420" />
+  </picture>
+</p>
 
 <p align="center"><strong>The fuel gauge for your AI coding day.</strong></p>
 
@@ -102,7 +107,7 @@ exe-fuelbar export -f json                     # JSON export
 exe-fuelbar menubar
 ```
 
-Downloads, installs to `~/Applications`, and launches. Re-run with `--force` to reinstall. Native Swift + SwiftUI — refreshes live via FSEvents plus a 15-second poll.
+Downloads, installs to `~/Applications`, and launches. Re-run with `--force` to reinstall. Native Swift + SwiftUI — silent background refresh every 60 seconds, no loading overlay. Pre-fetches all periods on launch so tab switching is instant.
 
 **Compact mode** drops decimals in the menubar (e.g. `$110` instead of `$110.20`):
 
@@ -151,23 +156,16 @@ Stored in `~/.config/exe-fuelbar/config.json`. User aliases override built-ins.
 
 ## Activity tracking
 
-13 categories classified from tool usage patterns and keywords. No LLM calls, fully deterministic.
+6 categories classified from tool usage patterns and keywords. No LLM calls, fully deterministic.
 
-| Category | Trigger |
-|----------|---------|
-| Coding | Edit, Write tools |
-| Debugging | Error/fix keywords + tools |
-| Feature Dev | "add", "create", "implement" |
-| Refactoring | "refactor", "rename", "simplify" |
+| Category | What triggers it |
+|----------|-----------------|
+| Building | Edit, Write tools; "add", "create", "implement"; refactoring keywords |
+| Debugging | Error/fix/bug keywords + tools |
 | Testing | pytest, vitest, jest in Bash |
-| Exploration | Read, Grep, WebSearch without edits |
-| Planning | EnterPlanMode, TaskCreate |
-| Delegation | Agent tool spawns |
-| Git Ops | git push/commit/merge |
-| Build/Deploy | npm build, docker, pm2 |
-| Brainstorming | "brainstorm", "what if", "design" |
-| Conversation | No tools, pure text |
-| General | Uncategorized |
+| Research | Read, Grep, WebSearch without edits; brainstorming; conversation |
+| DevOps | git push/commit/merge; npm build, docker, deploy |
+| Planning | EnterPlanMode, TaskCreate, Agent tool spawns |
 
 ---
 
@@ -209,13 +207,43 @@ src/
   dashboard.tsx    TUI (Ink — React for terminals)
   parser.ts        Session reader, dedup, date filter
   models.ts        LiteLLM pricing engine
-  classifier.ts   Activity classifier (13 categories)
+  classifier.ts   Activity classifier (6 categories)
   compare-stats.ts Model comparison engine
   export.ts        CSV/JSON export
   config.ts        Config management
   currency.ts      Currency conversion
   providers/       One file per supported tool
 ```
+
+---
+
+## Exe OS integration
+
+If [Exe OS](https://github.com/AskExe/exe-os) is installed, Fuelbar auto-detects it and shows a live **Agents** section in the menubar — memory counts per employee, 7-day growth, and daemon health. No configuration needed; the section appears when exe-os is present and hides when it's not.
+
+The exe-os daemon writes `~/.exe-os/agent-stats.json` every 60 seconds. Fuelbar reads this file — zero coupling, no auth, no direct database access.
+
+---
+
+## Origin & attribution
+
+Exe Fuelbar is forked from [codeburn](https://github.com/getagentseal/codeburn) by [AgentSeal](https://github.com/getagentseal) (MIT license). We forked rather than contributed upstream because our roadmap diverges significantly:
+
+**What we changed:**
+- Rebranded to Exe Fuelbar with the Exe Foundry Bold design system (gold + purple palette, owl icon)
+- Consolidated activity categories from 13 → 6 (less overlap, clearer signal)
+- Fixed double-counting bugs in the menubar JSON pipeline (cache + fresh parse overlap)
+- Performance: 7-day and 30-day queries from 2-5 seconds down to ~1 second (parse today only, use daily cache for history)
+- Menubar: removed loading overlay entirely — silent background refresh, pre-fetched periods for instant tab switching
+- Added exe-os agent memory integration (auto-detected)
+- Dark mode forced on popover, custom programmatic owl icon (NSBezierPath)
+
+**Why we forked:**
+- We need full control over the data pipeline to integrate with exe-os (our AI employee operating system)
+- Our classification model, provider support, and UI direction serve a different user base (AI-first teams running multi-agent workflows)
+- MIT license allows this — we give full credit to AgentSeal for the foundation
+
+Thank you to AgentSeal for building the original. If you just want a clean cost tracker without exe-os integration, [codeburn](https://github.com/getagentseal/codeburn) is excellent.
 
 ---
 
@@ -237,4 +265,4 @@ MIT
 
 ---
 
-Built by [Exe AI](https://askexe.com). Pricing data from [LiteLLM](https://github.com/BerriAI/litellm). Exchange rates from [Frankfurter](https://www.frankfurter.app/). Inspired by [ccusage](https://github.com/ryoppippi/ccusage) and [CodexBar](https://github.com/nicklama/codexbar).
+Built by [Exe AI](https://askexe.com). Forked from [codeburn](https://github.com/getagentseal/codeburn) by AgentSeal (MIT). Pricing data from [LiteLLM](https://github.com/BerriAI/litellm). Exchange rates from [Frankfurter](https://www.frankfurter.app/).

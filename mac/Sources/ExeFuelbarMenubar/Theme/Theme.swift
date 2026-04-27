@@ -14,7 +14,7 @@ enum Theme {
 
     // Surfaces
     static let warmSurface       = Color(red: 0xFA/255.0, green: 0xF8/255.0, blue: 0xF3/255.0) // light canvas
-    static let warmSurfaceDark   = Color(red: 0x0F/255.0, green: 0x0E/255.0, blue: 0x1A/255.0) // Void — dark canvas
+    static let warmSurfaceDark   = Color(red: 0x1A/255.0, green: 0x15/255.0, blue: 0x28/255.0) // Deep purple canvas
 
     // Categorical provider colors (distinct hues, good contrast on dark)
     static let categoricalClaude = Color(red: 0xDA/255.0, green: 0x7E/255.0, blue: 0x56/255.0) // Anthropic warm

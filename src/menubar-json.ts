@@ -81,6 +81,13 @@ export type MenubarPayload = {
   history: {
     daily: DailyHistoryEntry[]
   }
+  agentStats: AgentStatsPayload | null
+}
+
+export type AgentStatsPayload = {
+  generated: string
+  agents: Array<{ id: string; total: number; growth7d: number }>
+  daemon: { uptime: number; pid: number }
 }
 
 function oneShotRateFor(editTurns: number, oneShotTurns: number): number | null {
@@ -160,6 +167,7 @@ export function buildMenubarPayload(
   providers: ProviderCost[],
   optimize: OptimizeResult | null,
   dailyHistory?: DailyHistoryEntry[],
+  agentStats?: AgentStatsPayload | null,
 ): MenubarPayload {
   return {
     generated: new Date().toISOString(),
@@ -178,5 +186,6 @@ export function buildMenubarPayload(
     },
     optimize: buildOptimize(optimize),
     history: buildHistory(dailyHistory),
+    agentStats: agentStats ?? null,
   }
 }

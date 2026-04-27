@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
+import { homedir } from 'os'
 import { Command } from 'commander'
 import { installMenubarApp } from './menubar-installer.js'
 import { exportCsv, exportJson, type PeriodExport } from './export.js'
@@ -5,7 +8,7 @@ import { loadPricing, setModelAliases } from './models.js'
 import { parseAllSessions, filterProjectsByName } from './parser.js'
 import { convertCost } from './currency.js'
 import { renderStatusBar } from './format.js'
-import { type PeriodData, type ProviderCost } from './menubar-json.js'
+import { type PeriodData, type ProviderCost, type AgentStatsPayload } from './menubar-json.js'
 import { buildMenubarPayload } from './menubar-json.js'
 import { addNewDays, getDaysInRange, loadDailyCache, saveDailyCache, withDailyCacheLock } from './daily-cache.js'
 import { aggregateProjectsIntoDays, buildPeriodDataFromDays, dateKey } from './day-aggregator.js'
@@ -521,7 +524,17 @@ program
       })
 
       const optimize = opts.optimize === false ? null : await scanAndDetect(scanProjects, scanRange)
-      console.log(JSON.stringify(buildMenubarPayload(currentData, providers, optimize, dailyHistory)))
+
+      // Read exe-os agent stats if available (auto-detect exe-os presence)
+      let agentStats: AgentStatsPayload | null = null
+      try {
+        const statsPath = join(homedir(), '.exe-os', 'agent-stats.json')
+        if (existsSync(statsPath)) {
+          agentStats = JSON.parse(readFileSync(statsPath, 'utf-8')) as AgentStatsPayload
+        }
+      } catch { /* exe-os not installed or stats not yet written */ }
+
+      console.log(JSON.stringify(buildMenubarPayload(currentData, providers, optimize, dailyHistory, agentStats)))
       return
     }
 

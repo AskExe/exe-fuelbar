@@ -7,6 +7,26 @@ struct MenubarPayload: Codable, Sendable {
     let current: CurrentBlock
     let optimize: OptimizeBlock
     let history: HistoryBlock
+    let agentStats: AgentStatsBlock?
+}
+
+// MARK: - Exe OS Agent Memory Stats (auto-detected)
+
+struct AgentStatsBlock: Codable, Sendable {
+    let generated: String
+    let agents: [AgentStat]
+    let daemon: DaemonInfo
+}
+
+struct AgentStat: Codable, Sendable, Identifiable {
+    let id: String
+    let total: Int
+    let growth7d: Int
+}
+
+struct DaemonInfo: Codable, Sendable {
+    let uptime: Double
+    let pid: Int
 }
 
 struct HistoryBlock: Codable, Sendable {
@@ -118,6 +138,7 @@ extension MenubarPayload {
             providers: [:]
         ),
         optimize: OptimizeBlock(findingCount: 0, savingsUSD: 0, topFindings: []),
-        history: HistoryBlock(daily: [])
+        history: HistoryBlock(daily: []),
+        agentStats: nil
     )
 }

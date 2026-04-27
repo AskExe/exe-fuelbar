@@ -112,6 +112,8 @@ struct MenuBarContent: View {
                         Divider().opacity(0.5)
                         ModelsSection()
                         Divider().opacity(0.5)
+                        AgentsSection()
+                        Divider().opacity(0.5)
                         FindingsSection()
                     }
                 }
@@ -124,6 +126,7 @@ struct MenuBarContent: View {
 
             StarBanner()
         }
+        .background(Theme.warmSurfaceDark)
     }
 
     /// True when a specific provider tab is selected and that provider has no spend in the

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 60" width="500" height="60">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@700&amp;display=swap');
+    </style>
+  </defs>
+  <text x="250" y="45" text-anchor="middle" font-family="Epilogue, sans-serif" font-weight="700" font-size="48" letter-spacing="6">
+    <tspan fill="#FFFFFF">EXE </tspan><tspan fill="#F5D76E">FUELBAR</tspan>
+  </text>
+</svg>
