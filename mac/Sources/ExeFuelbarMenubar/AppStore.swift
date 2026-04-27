@@ -52,16 +52,25 @@ final class AppStore {
         payload.optimize.findingCount
     }
 
-    /// Switch to a period. Always fetches fresh data so the user never sees stale numbers.
+    /// Switch to a period. Shows cached data instantly, then refreshes in background.
     func switchTo(period: Period) async {
         selectedPeriod = period
-        await refresh(includeOptimize: true)
+        // If we have cached data, it's already showing via the @Observable payload getter.
+        // Refresh silently in the background so the UI never stalls.
+        await refreshQuietly(period: period)
     }
 
-    /// Switch to a provider filter. Always fetches fresh data so the user never sees stale numbers.
+    /// Switch to a provider filter. Shows cached data instantly, then refreshes in background.
     func switchTo(provider: ProviderFilter) async {
         selectedProvider = provider
-        await refresh(includeOptimize: true)
+        await refreshQuietly(period: selectedPeriod)
+    }
+
+    /// Pre-fetch all periods so tab switching is instant from cache.
+    func prefetchAllPeriods() async {
+        for period in Period.allCases where period != .today {
+            await refreshQuietly(period: period)
+        }
     }
 
     private var inFlightKeys: Set<PayloadCacheKey> = []
@@ -73,11 +82,7 @@ final class AppStore {
         let key = currentKey
         guard !inFlightKeys.contains(key) else { return }
         inFlightKeys.insert(key)
-        isLoading = true
-        defer {
-            inFlightKeys.remove(key)
-            isLoading = false
-        }
+        defer { inFlightKeys.remove(key) }
         do {
             let fresh = try await DataClient.fetch(period: key.period, provider: key.provider, includeOptimize: includeOptimize)
             cache[key] = CachedPayload(payload: fresh, fetchedAt: Date())
@@ -88,15 +93,27 @@ final class AppStore {
         }
     }
 
-    /// Background refresh for a period other than the visible one (e.g. keeping today fresh for the menubar badge).
-    /// Does not toggle isLoading, so the popover's loading overlay is unaffected.
-    /// Always uses the .all provider since the menubar badge shows total spend.
+    /// Silent background refresh — does NOT toggle isLoading, so the popover loading overlay
+    /// never flashes. Used by the timer loop. Fetches for the given period + the currently
+    /// selected provider (so the visible popover tab stays fresh), plus always refreshes
+    /// the .all provider for the menubar badge.
     func refreshQuietly(period: Period) async {
         do {
-            let fresh = try await DataClient.fetch(period: period, provider: .all, includeOptimize: true)
+            let fresh = try await DataClient.fetch(period: period, provider: .all, includeOptimize: false)
             cache[PayloadCacheKey(period: period, provider: .all)] = CachedPayload(payload: fresh, fetchedAt: Date())
         } catch {
-            NSLog("Exe Fuelbar: quiet refresh failed for \(period.rawValue): \(error)")
+            NSLog("Exe Fuelbar: quiet refresh failed for \(period.rawValue)/all: \(error)")
+        }
+        // Also refresh the currently-selected provider if it's not .all, so the visible
+        // popover tab picks up new data silently.
+        let provider = selectedProvider
+        if provider != .all {
+            do {
+                let fresh = try await DataClient.fetch(period: period, provider: provider, includeOptimize: false)
+                cache[PayloadCacheKey(period: period, provider: provider)] = CachedPayload(payload: fresh, fetchedAt: Date())
+            } catch {
+                NSLog("Exe Fuelbar: quiet refresh failed for \(period.rawValue)/\(provider.rawValue): \(error)")
+            }
         }
     }
 

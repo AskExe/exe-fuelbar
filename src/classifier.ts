@@ -58,7 +58,7 @@ function classifyByToolPattern(turn: ParsedTurn): TaskCategory | null {
   if (tools.length === 0) return null
 
   if (turn.assistantCalls.some(c => c.hasPlanMode)) return 'planning'
-  if (turn.assistantCalls.some(c => c.hasAgentSpawn)) return 'delegation'
+  if (turn.assistantCalls.some(c => c.hasAgentSpawn)) return 'planning'
 
   const hasEdits = hasEditTools(tools)
   const hasReads = hasReadTools(tools)
@@ -71,50 +71,47 @@ function classifyByToolPattern(turn: ParsedTurn): TaskCategory | null {
   if (hasBash && !hasEdits) {
     const userMsg = turn.userMessage
     if (TEST_PATTERNS.test(userMsg)) return 'testing'
-    if (GIT_PATTERNS.test(userMsg)) return 'git'
-    if (BUILD_PATTERNS.test(userMsg)) return 'build/deploy'
-    if (INSTALL_PATTERNS.test(userMsg)) return 'build/deploy'
+    if (GIT_PATTERNS.test(userMsg)) return 'devops'
+    if (BUILD_PATTERNS.test(userMsg)) return 'devops'
+    if (INSTALL_PATTERNS.test(userMsg)) return 'devops'
   }
 
-  if (hasEdits) return 'coding'
+  if (hasEdits) return 'building'
 
-  if (hasBash && hasReads) return 'exploration'
-  if (hasBash) return 'coding'
+  if (hasBash && hasReads) return 'research'
+  if (hasBash) return 'building'
 
-  if (hasSearch || hasMcp) return 'exploration'
-  if (hasReads && !hasEdits) return 'exploration'
+  if (hasSearch || hasMcp) return 'research'
+  if (hasReads && !hasEdits) return 'research'
   if (hasTasks && !hasEdits) return 'planning'
-  if (hasSkill) return 'general'
+  if (hasSkill) return 'building'
 
   return null
 }
 
 function refineByKeywords(category: TaskCategory, userMessage: string): TaskCategory {
-  if (category === 'coding') {
+  if (category === 'building') {
     if (DEBUG_KEYWORDS.test(userMessage)) return 'debugging'
-    if (REFACTOR_KEYWORDS.test(userMessage)) return 'refactoring'
-    if (FEATURE_KEYWORDS.test(userMessage)) return 'feature'
-    return 'coding'
+    return 'building'
   }
 
-  if (category === 'exploration') {
-    if (RESEARCH_KEYWORDS.test(userMessage)) return 'exploration'
+  if (category === 'research') {
     if (DEBUG_KEYWORDS.test(userMessage)) return 'debugging'
-    return 'exploration'
+    return 'research'
   }
 
   return category
 }
 
 function classifyConversation(userMessage: string): TaskCategory {
-  if (BRAINSTORM_KEYWORDS.test(userMessage)) return 'brainstorming'
-  if (RESEARCH_KEYWORDS.test(userMessage)) return 'exploration'
+  if (BRAINSTORM_KEYWORDS.test(userMessage)) return 'research'
+  if (RESEARCH_KEYWORDS.test(userMessage)) return 'research'
   if (DEBUG_KEYWORDS.test(userMessage)) return 'debugging'
-  if (FEATURE_KEYWORDS.test(userMessage)) return 'feature'
-  if (FILE_PATTERNS.test(userMessage)) return 'coding'
-  if (SCRIPT_PATTERNS.test(userMessage)) return 'coding'
-  if (URL_PATTERN.test(userMessage)) return 'exploration'
-  return 'conversation'
+  if (FEATURE_KEYWORDS.test(userMessage)) return 'building'
+  if (FILE_PATTERNS.test(userMessage)) return 'building'
+  if (SCRIPT_PATTERNS.test(userMessage)) return 'building'
+  if (URL_PATTERN.test(userMessage)) return 'research'
+  return 'research'
 }
 
 function countRetries(turn: ParsedTurn): number {

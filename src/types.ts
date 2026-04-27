@@ -81,19 +81,12 @@ export type ParsedApiCall = {
 }
 
 export type TaskCategory =
-  | 'coding'
+  | 'building'
   | 'debugging'
-  | 'feature'
-  | 'refactoring'
   | 'testing'
-  | 'exploration'
+  | 'research'
+  | 'devops'
   | 'planning'
-  | 'delegation'
-  | 'git'
-  | 'build/deploy'
-  | 'conversation'
-  | 'brainstorming'
-  | 'general'
 
 export type ClassifiedTurn = ParsedTurn & {
   category: TaskCategory
@@ -134,17 +127,10 @@ export type DateRange = {
 }
 
 export const CATEGORY_LABELS: Record<TaskCategory, string> = {
-  coding: 'Coding',
+  building: 'Building',
   debugging: 'Debugging',
-  feature: 'Feature Dev',
-  refactoring: 'Refactoring',
   testing: 'Testing',
-  exploration: 'Exploration',
+  research: 'Research',
+  devops: 'DevOps',
   planning: 'Planning',
-  delegation: 'Delegation',
-  git: 'Git Ops',
-  'build/deploy': 'Build/Deploy',
-  conversation: 'Conversation',
-  brainstorming: 'Brainstorming',
-  general: 'General',
 }

@@ -1,6 +1,83 @@
 import AppKit
 import SwiftUI
 
+/// Reusable owl icon drawn programmatically. Same drawing as the menubar icon.
+/// Renders as a template image (white on dark backgrounds).
+struct OwlIcon: View {
+    let size: CGFloat
+
+    var body: some View {
+        Image(nsImage: Self.draw(size: size))
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: size, height: size)
+    }
+
+    /// Draws the owl at the requested size using the same NSBezierPath approach as the menubar.
+    static func draw(size: CGFloat) -> NSImage {
+        let s = size / 100.0
+        let img = NSImage(size: NSSize(width: size, height: size), flipped: false) { _ in
+            let fill = NSColor.black
+
+            // Ear tufts
+            let leftEar = NSBezierPath()
+            leftEar.move(to: NSPoint(x: 26*s, y: (100-32)*s))
+            leftEar.line(to: NSPoint(x: 18*s, y: (100-6)*s))
+            leftEar.line(to: NSPoint(x: 36*s, y: (100-26)*s))
+            leftEar.close()
+            fill.setFill(); leftEar.fill()
+
+            let rightEar = NSBezierPath()
+            rightEar.move(to: NSPoint(x: 74*s, y: (100-32)*s))
+            rightEar.line(to: NSPoint(x: 82*s, y: (100-6)*s))
+            rightEar.line(to: NSPoint(x: 64*s, y: (100-26)*s))
+            rightEar.close()
+            rightEar.fill()
+
+            // Head
+            NSBezierPath(ovalIn: NSRect(
+                x: (50-24)*s, y: (100-38-24)*s, width: 48*s, height: 48*s)).fill()
+
+            // Body
+            NSBezierPath(ovalIn: NSRect(
+                x: (50-21)*s, y: (100-70-23)*s, width: 42*s, height: 46*s)).fill()
+
+            // Feet
+            NSBezierPath(ovalIn: NSRect(
+                x: (40-7)*s, y: (100-92-3.5)*s, width: 14*s, height: 7*s)).fill()
+            NSBezierPath(ovalIn: NSRect(
+                x: (60-7)*s, y: (100-92-3.5)*s, width: 14*s, height: 7*s)).fill()
+
+            // Punch out eyes + beak
+            if let ctx = NSGraphicsContext.current?.cgContext {
+                ctx.setBlendMode(.clear)
+                NSBezierPath(ovalIn: NSRect(
+                    x: (38-10)*s, y: (100-35-10)*s, width: 20*s, height: 20*s)).fill()
+                NSBezierPath(ovalIn: NSRect(
+                    x: (62-10)*s, y: (100-35-10)*s, width: 20*s, height: 20*s)).fill()
+                let beak = NSBezierPath()
+                beak.move(to: NSPoint(x: 46*s, y: (100-46)*s))
+                beak.line(to: NSPoint(x: 50*s, y: (100-53)*s))
+                beak.line(to: NSPoint(x: 54*s, y: (100-46)*s))
+                beak.close()
+                beak.fill()
+                ctx.setBlendMode(.normal)
+            }
+
+            // Pupils
+            fill.setFill()
+            NSBezierPath(ovalIn: NSRect(
+                x: (38-4.5)*s, y: (100-35-4.5)*s, width: 9*s, height: 9*s)).fill()
+            NSBezierPath(ovalIn: NSRect(
+                x: (62-4.5)*s, y: (100-35-4.5)*s, width: 9*s, height: 9*s)).fill()
+
+            return true
+        }
+        img.isTemplate = true
+        return img
+    }
+}
+
 /// Popover root. Assembles all sections matching the HTML design spec.
 struct MenuBarContent: View {
     @Environment(AppStore.self) private var store
@@ -16,38 +93,30 @@ struct MenuBarContent: View {
                 Divider()
             }
 
-            ZStack {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        HeroSection()
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    HeroSection()
+                    Divider().opacity(0.5)
+                    PeriodSegmentedControl()
+                    Divider().opacity(0.5)
+                    if isFilteredEmpty {
+                        EmptyProviderState(provider: store.selectedProvider, period: store.selectedPeriod)
+                    } else {
+                        HeatmapSection()
+                            .padding(.horizontal, 14)
+                            .padding(.top, 10)
+                            .padding(.bottom, 10)
+                            .zIndex(10)
                         Divider().opacity(0.5)
-                        PeriodSegmentedControl()
+                        ActivitySection()
                         Divider().opacity(0.5)
-                        if isFilteredEmpty {
-                            EmptyProviderState(provider: store.selectedProvider, period: store.selectedPeriod)
-                        } else {
-                            HeatmapSection()
-                                .padding(.horizontal, 14)
-                                .padding(.top, 10)
-                                .padding(.bottom, 10)
-                                .zIndex(10)
-                            Divider().opacity(0.5)
-                            ActivitySection()
-                            Divider().opacity(0.5)
-                            ModelsSection()
-                            Divider().opacity(0.5)
-                            FindingsSection()
-                        }
+                        ModelsSection()
+                        Divider().opacity(0.5)
+                        FindingsSection()
                     }
-                }
-
-                if store.isLoading {
-                    BurnLoadingOverlay(periodLabel: store.selectedPeriod.rawValue)
-                        .transition(.opacity)
                 }
             }
             .frame(height: 520)
-            .animation(.easeInOut(duration: 0.2), value: store.isLoading)
 
             Divider()
 
@@ -104,81 +173,40 @@ private struct EmptyProviderState: View {
 }
 
 /// Translucent overlay that blurs whatever's behind it (the previous tab/period content)
-/// and centers an animated burning flame -- the brand mark filling up bottom-to-top in
-/// yellow→orange→red, looping.
+/// and centers an animated owl icon pulsing with the brand palette.
 private struct BurnLoadingOverlay: View {
     let periodLabel: String
-    @State private var fillProgress: CGFloat = 0
     @State private var glowing: Bool = false
 
-    private let flameSize: CGFloat = 64
+    private let iconSize: CGFloat = 48
 
     var body: some View {
         ZStack {
-            // Blur backdrop -- ultraThinMaterial uses live blur of underlying content.
             Rectangle()
                 .fill(.ultraThinMaterial)
 
             VStack(spacing: 14) {
-                BurnFlame(size: flameSize, fillProgress: fillProgress, glowing: glowing)
+                ZStack {
+                    OwlIcon(size: iconSize)
+                        .foregroundStyle(.white.opacity(glowing ? 0.5 : 0.2))
+                        .blur(radius: glowing ? 12 : 5)
+
+                    OwlIcon(size: iconSize)
+                        .foregroundStyle(.white)
+                        .opacity(glowing ? 1.0 : 0.6)
+                }
+                .frame(width: iconSize, height: iconSize)
+
                 Text("Loading \(periodLabel)…")
                     .font(.system(size: 11.5, weight: .medium))
                     .foregroundStyle(.secondary)
             }
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
-                fillProgress = 1.0
-            }
-            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                 glowing = true
             }
         }
-    }
-}
-
-private struct BurnFlame: View {
-    let size: CGFloat
-    let fillProgress: CGFloat
-    let glowing: Bool
-
-    var body: some View {
-        ZStack {
-            // Soft outer glow that pulses, matching the brand terracotta palette.
-            Image(systemName: "flame.fill")
-                .font(.system(size: size, weight: .regular))
-                .foregroundStyle(Theme.brandEmberGlow.opacity(glowing ? 0.55 : 0.20))
-                .blur(radius: glowing ? 14 : 6)
-
-            // Empty (cool) flame as base
-            Image(systemName: "flame")
-                .font(.system(size: size, weight: .regular))
-                .foregroundStyle(Theme.brandAccent.opacity(0.25))
-
-            // Burning gradient (brand orange) masked by an animated bottom-up rectangle
-            Image(systemName: "flame.fill")
-                .font(.system(size: size, weight: .regular))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [
-                            Theme.brandEmberGlow,
-                            Theme.brandAccentDark,
-                            Theme.brandAccent,
-                            Theme.brandEmberDeep
-                        ],
-                        startPoint: .bottom,
-                        endPoint: .top
-                    )
-                )
-                .mask(
-                    GeometryReader { geo in
-                        Rectangle()
-                            .frame(height: geo.size.height * fillProgress)
-                            .frame(maxHeight: .infinity, alignment: .bottom)
-                    }
-                )
-        }
-        .frame(width: size, height: size)
     }
 }
 
@@ -250,8 +278,7 @@ struct FlameMark: View {
                     )
                 )
                 .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
-            Image(systemName: "flame.fill")
-                .font(.system(size: 12, weight: .semibold))
+            OwlIcon(size: 12)
                 .foregroundStyle(.white)
         }
     }
@@ -344,12 +371,11 @@ struct FooterBar: View {
             Button {
                 Task { await store.refresh(includeOptimize: true) }
             } label: {
-                Image(systemName: store.isLoading ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
+                Image(systemName: "arrow.clockwise")
                     .font(.system(size: 11, weight: .medium))
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .disabled(store.isLoading)
 
             Menu {
                 Button("CSV (folder)") { runExport(format: .csv) }

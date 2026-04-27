@@ -13,6 +13,10 @@ let package = Package(
         .executableTarget(
             name: "ExeFuelbarMenubar",
             path: "Sources/ExeFuelbarMenubar",
+            resources: [
+                .copy("Resources/owl.pdf"),
+                .copy("Resources/owl-menubar.pdf")
+            ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")
             ]

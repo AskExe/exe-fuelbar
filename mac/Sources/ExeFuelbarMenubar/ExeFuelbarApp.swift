@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import Observation
 
-private let refreshIntervalSeconds: UInt64 = 15
+private let refreshIntervalSeconds: UInt64 = 60
 private let nanosPerSecond: UInt64 = 1_000_000_000
 private let refreshIntervalNanos: UInt64 = refreshIntervalSeconds * nanosPerSecond
 private let statusItemWidth: CGFloat = NSStatusItem.variableLength
@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         ProcessInfo.processInfo.disableSuddenTermination()
         backgroundActivity = ProcessInfo.processInfo.beginActivity(
             options: [.userInitiated, .automaticTerminationDisabled, .suddenTerminationDisabled],
-            reason: "Exe Fuelbar menubar polls AI coding cost every 15 seconds while idle in the background."
+            reason: "Exe Fuelbar menubar polls AI coding cost every 60 seconds while idle in the background."
         )
 
         restorePersistedCurrency()
@@ -103,7 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         <string>ObjC.import("Foundation"); $.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately("com.exe-fuelbar.refresh", $(), $(), true)</string>
     </array>
     <key>StartInterval</key>
-    <integer>15</integer>
+    <integer>60</integer>
     <key>RunAtLoad</key>
     <true/>
 </dict>
@@ -169,12 +169,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     private func startRefreshLoop() {
-        // Initial fetch on launch
+        // Initial fetch: today first (fast, updates menubar badge), then prefetch all other periods
+        // in background so tab switching is instant.
         Task {
             await store.refreshQuietly(period: .today)
             refreshStatusButton()
-            await store.refresh(includeOptimize: true)
-            refreshStatusButton()
+            await store.prefetchAllPeriods()
         }
 
         // Use DispatchSourceTimer for more reliable background execution
@@ -183,10 +183,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         timer.setEventHandler { [weak self] in
             guard let self = self else { return }
             Task { @MainActor in
+                // Background timer: use refreshQuietly for ALL periods so the loading
+                // overlay never flashes while the popover is open. The menubar badge
+                // and popover body still update silently via @Observable diffing.
                 await self.store.refreshQuietly(period: .today)
                 self.refreshStatusButton()
-                await self.store.refresh(includeOptimize: true)
-                self.refreshStatusButton()
+                let selected = self.store.selectedPeriod
+                if selected != .today {
+                    await self.store.refreshQuietly(period: selected)
+                }
             }
         }
         timer.resume()
@@ -220,29 +225,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         refreshStatusButton()
     }
 
-    /// Composes the menubar title as a single attributed string with the flame as an inline
-    /// NSTextAttachment. NSStatusItem's separate `image` + `attributedTitle` path leaves a
-    /// stubborn gap between icon and text on some macOS releases (the icon hugs the left edge
-    /// of the status item, the title starts at its own baseline), so we inline both so they
-    /// flow as one typographic unit with a single, controllable gap.
+    /// Sets the menubar icon (owl) + cost text. Uses button.image for the icon
+    /// and button.attributedTitle for the text — simpler and more reliable than
+    /// NSTextAttachment which silently drops custom images.
     private func refreshStatusButton() {
         guard let button = statusItem.button else { return }
 
-        // Clear any previously-set image so the attachment is the only glyph rendered.
-        button.image = nil
-        button.imagePosition = .noImage
-
         let font = NSFont.monospacedDigitSystemFont(ofSize: menubarTitleFontSize, weight: .medium)
-        let flameConfig = NSImage.SymbolConfiguration(pointSize: menubarTitleFontSize, weight: .medium)
-        let flame = NSImage(systemSymbolName: "flame.fill", accessibilityDescription: "Exe Fuelbar")?
-            .withSymbolConfiguration(flameConfig)
-        flame?.isTemplate = true
+        let iconH: CGFloat = menubarTitleFontSize + 3
 
-        let attachment = NSTextAttachment()
-        attachment.image = flame
-        if let size = flame?.size {
-            attachment.bounds = CGRect(x: 0, y: -3, width: size.width, height: size.height)
-        }
+        // Draw the owl programmatically — PDF/SVG template images are unreliable at menubar size.
+        let owlImage: NSImage = Self.drawOwl(height: iconH)
+
+        button.image = owlImage
+        button.imagePosition = .imageLeading
 
         let hasPayload = store.todayPayload != nil
         let compact = isCompact
@@ -250,16 +246,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let formatted = store.todayPayload?.current.cost
         let valueText = compact
             ? (formatted?.asCompactCurrencyWhole() ?? fallback)
-            : " " + (formatted?.asCompactCurrency() ?? fallback)
+            : (formatted?.asCompactCurrency() ?? fallback)
         let color: NSColor = hasPayload ? .labelColor : .secondaryLabelColor
 
-        let composed = NSMutableAttributedString()
-        composed.append(NSAttributedString(attachment: attachment))
-        composed.append(NSAttributedString(
+        button.attributedTitle = NSAttributedString(
             string: valueText,
-            attributes: [.font: font, .foregroundColor: color, .baselineOffset: -1.0]
-        ))
-        button.attributedTitle = composed
+            attributes: [.font: font, .foregroundColor: color]
+        )
         // Force immediate redraw. NSStatusItem sometimes defers the status bar paint for an
         // accessory app that is not foreground, so the label visually freezes until the user
         // opens the popover (which triggers NSApp.activate + a forced redraw cycle).
@@ -280,8 +273,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             .environment(store)
             .environment(updateChecker)
             .frame(width: popoverWidth)
+            .preferredColorScheme(.dark)
 
         popover.contentViewController = NSHostingController(rootView: content)
+        popover.contentViewController?.view.appearance = NSAppearance(named: .darkAqua)
     }
 
     @objc private func handleButtonClick(_ sender: AnyObject?) {
@@ -299,5 +294,88 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     func popoverShouldDetach(_ popover: NSPopover) -> Bool {
         false
+    }
+
+    // MARK: - Owl Icon
+
+    /// Draws a crisp owl icon at the requested point size. Returns an NSImage marked as
+    /// template so macOS auto-colors it for the menubar (white on dark, black on light).
+    /// All coordinates are relative to a 100×100 design grid, scaled to `height`.
+    private static func drawOwl(height: CGFloat) -> NSImage {
+        let s = height / 100.0  // scale factor
+        let size = NSSize(width: height, height: height)
+        let img = NSImage(size: size, flipped: false) { _ in
+            let fill = NSColor.black
+
+            // --- Ear tufts ---
+            let leftEar = NSBezierPath()
+            leftEar.move(to: NSPoint(x: 26*s, y: (100-32)*s))
+            leftEar.line(to: NSPoint(x: 18*s, y: (100-6)*s))
+            leftEar.line(to: NSPoint(x: 36*s, y: (100-26)*s))
+            leftEar.close()
+            fill.setFill()
+            leftEar.fill()
+
+            let rightEar = NSBezierPath()
+            rightEar.move(to: NSPoint(x: 74*s, y: (100-32)*s))
+            rightEar.line(to: NSPoint(x: 82*s, y: (100-6)*s))
+            rightEar.line(to: NSPoint(x: 64*s, y: (100-26)*s))
+            rightEar.close()
+            rightEar.fill()
+
+            // --- Head ---
+            let head = NSBezierPath(ovalIn: NSRect(
+                x: (50-24)*s, y: (100-38-24)*s, width: 48*s, height: 48*s))
+            head.fill()
+
+            // --- Body ---
+            let body = NSBezierPath(ovalIn: NSRect(
+                x: (50-21)*s, y: (100-70-23)*s, width: 42*s, height: 46*s))
+            body.fill()
+
+            // --- Feet ---
+            let leftFoot = NSBezierPath(ovalIn: NSRect(
+                x: (40-7)*s, y: (100-92-3.5)*s, width: 14*s, height: 7*s))
+            leftFoot.fill()
+            let rightFoot = NSBezierPath(ovalIn: NSRect(
+                x: (60-7)*s, y: (100-92-3.5)*s, width: 14*s, height: 7*s))
+            rightFoot.fill()
+
+            // --- Eye sockets (punch out with clear using CGContext) ---
+            if let ctx = NSGraphicsContext.current?.cgContext {
+                ctx.setBlendMode(.clear)
+
+                let leftSocket = NSBezierPath(ovalIn: NSRect(
+                    x: (38-10)*s, y: (100-35-10)*s, width: 20*s, height: 20*s))
+                leftSocket.fill()
+
+                let rightSocket = NSBezierPath(ovalIn: NSRect(
+                    x: (62-10)*s, y: (100-35-10)*s, width: 20*s, height: 20*s))
+                rightSocket.fill()
+
+                // --- Beak (punch out) ---
+                let beak = NSBezierPath()
+                beak.move(to: NSPoint(x: 46*s, y: (100-46)*s))
+                beak.line(to: NSPoint(x: 50*s, y: (100-53)*s))
+                beak.line(to: NSPoint(x: 54*s, y: (100-46)*s))
+                beak.close()
+                beak.fill()
+
+                ctx.setBlendMode(.normal)
+            }
+
+            // --- Pupils (filled dots inside the clear sockets) ---
+            fill.setFill()
+            let leftPupil = NSBezierPath(ovalIn: NSRect(
+                x: (38-4.5)*s, y: (100-35-4.5)*s, width: 9*s, height: 9*s))
+            leftPupil.fill()
+            let rightPupil = NSBezierPath(ovalIn: NSRect(
+                x: (62-4.5)*s, y: (100-35-4.5)*s, width: 9*s, height: 9*s))
+            rightPupil.fill()
+
+            return true
+        }
+        img.isTemplate = true
+        return img
     }
 }

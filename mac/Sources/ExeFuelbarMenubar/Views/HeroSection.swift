@@ -12,13 +12,7 @@ struct HeroSection: View {
                     .font(.system(size: 32, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                     .tracking(-1)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Theme.brandAccent, Theme.brandEmberDeep],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
+                    .foregroundStyle(Theme.brandAccent)
 
                 Spacer()
 
