@@ -85,6 +85,22 @@ cat > "${BUNDLE}/Contents/PkgInfo" <<'PKG'
 APPL????
 PKG
 
+# Copy app icon into bundle Resources so Finder/Dock/Spotlight display it.
+ICON_SRC="${MAC_DIR}/Sources/ExeFuelbarMenubar/Resources/AppIcon.icns"
+if [[ -f "${ICON_SRC}" ]]; then
+  cp "${ICON_SRC}" "${BUNDLE}/Contents/Resources/AppIcon.icns"
+  echo "▸ App icon installed."
+fi
+
+# Copy SwiftPM resource bundles (fonts, images). The generated resource_bundle_accessor.swift
+# looks at Bundle.main.bundleURL (= the .app root for app bundles), so place them there.
+echo "▸ Copying resource bundles..."
+for rb in "${BIN_PATH}"/*.bundle; do
+  [[ -d "${rb}" ]] || continue
+  cp -R "${rb}" "${BUNDLE}/"
+  echo "  → $(basename "${rb}")"
+done
+
 # Ad-hoc sign so macOS treats the bundle as internally consistent. This satisfies the
 # minimum bundle-validity checks on macOS 14+ and prevents a class of Gatekeeper edge
 # cases on managed Macs. A Developer ID signature (separate setup) would additionally

@@ -15,7 +15,9 @@ let package = Package(
             path: "Sources/ExeFuelbarMenubar",
             resources: [
                 .copy("Resources/owl.pdf"),
-                .copy("Resources/owl-menubar.pdf")
+                .copy("Resources/owl-menubar.pdf"),
+                .copy("Resources/Epilogue-Bold.ttf"),
+                .copy("Resources/AppIcon.icns")
             ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency")
