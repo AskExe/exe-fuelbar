@@ -1,7 +1,7 @@
 {
   "name": "exe-fuelbar",
-  "version": "0.1.1",
-  "description": "See where your AI coding tokens go - by task, tool, model, and project",
+  "version": "0.2.0",
+  "description": "The fuel gauge for your AI coding day — cost, tokens, agents, and projects in your menu bar",
   "type": "module",
   "main": "./dist/cli.js",
   "bin": {

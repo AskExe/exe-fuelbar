@@ -41,7 +41,7 @@ npm install -g exe-fuelbar
 
 **Compare** — Side-by-side model comparison on your own data. One-shot rate, retry rate, cost per edit, cache hit rate, delegation style, fast mode usage — broken down by task category.
 
-**Menubar** — Native macOS app showing today's cost in your menu bar. Period switcher, trend/forecast/pulse insights, activity breakdowns, and export. One command to install.
+**Menubar** — Native macOS app showing today's cost in your menu bar. Period switcher, trend/forecast/pulse insights, activity breakdowns, per-project spend, and AI employee tracking. Launches at login, one command to install.
 
 **Export** — CSV and JSON export for any time period. Pipe `--format json` output to `jq` for scripting.
 
@@ -107,7 +107,14 @@ exe-fuelbar export -f json                     # JSON export
 exe-fuelbar menubar
 ```
 
-Downloads, installs to `~/Applications`, and launches. Re-run with `--force` to reinstall. Native Swift + SwiftUI — silent background refresh every 60 seconds, no loading overlay. Pre-fetches all periods on launch so tab switching is instant.
+Downloads, installs to `~/Applications`, and launches. Re-run with `--force` to reinstall. Native Swift + SwiftUI — silent background refresh every 60 seconds, no loading overlay. Pre-fetches all periods on launch so tab switching is instant. Launches at login automatically via macOS Login Items (toggleable in System Settings).
+
+**v0.2.0 additions:**
+- **Project Spend** — per-project cost breakdown across 24h / 7d / 30d
+- **AI Employees** — collapsible section with Memory counts (+ growth) and Employee Spend (model-aware pricing per agent)
+- **Dynamic provider tabs** — only shows providers that have actual spend data
+- **Quit button** — clean shutdown from the footer bar
+- **App icon** — gold EXE on dark purple (Exe Foundry Bold palette)
 
 **Compact mode** drops decimals in the menubar (e.g. `$110` instead of `$110.20`):
 
@@ -209,19 +216,24 @@ src/
   models.ts        LiteLLM pricing engine
   classifier.ts   Activity classifier (6 categories)
   compare-stats.ts Model comparison engine
+  menubar-json.ts  Menubar payload builder (agent spend, project spend)
   export.ts        CSV/JSON export
   config.ts        Config management
   currency.ts      Currency conversion
   providers/       One file per supported tool
+mac/               Native macOS menubar app (Swift + SwiftUI)
 ```
 
 ---
 
 ## Exe OS integration
 
-If [Exe OS](https://github.com/AskExe/exe-os) is installed, Fuelbar auto-detects it and shows a live **Agents** section in the menubar — memory counts per employee, 7-day growth, and daemon health. No configuration needed; the section appears when exe-os is present and hides when it's not.
+If [Exe OS](https://github.com/AskExe/exe-os) is installed, Fuelbar auto-detects it and shows a live **AI Employees** section in the menubar with two sub-panels:
 
-The exe-os daemon writes `~/.exe-os/agent-stats.json` every 60 seconds. Fuelbar reads this file — zero coupling, no auth, no direct database access.
+- **Memory** — per-agent memory count with 24h / 7d / 30d growth columns
+- **Employee Spend** — per-agent cost across 24h / 7d / 30d, using model-aware pricing (Opus, Sonnet, Haiku rates applied per-model from the daemon's token data)
+
+No configuration needed. The section appears when exe-os is present and hides when it's not. The data pipeline: exe-os SessionStart hook maps Claude Code sessions to agents, the daemon computes `getAgentSpend()` with per-model pricing, writes `~/.exe-os/agent-stats.json` every 60 seconds, and Fuelbar reads this file — zero coupling, no auth, no direct database access.
 
 ---
 
@@ -235,8 +247,10 @@ Exe Fuelbar is forked from [codeburn](https://github.com/getagentseal/codeburn) 
 - Fixed double-counting bugs in the menubar JSON pipeline (cache + fresh parse overlap)
 - Performance: 7-day and 30-day queries from 2-5 seconds down to ~1 second (parse today only, use daily cache for history)
 - Menubar: removed loading overlay entirely — silent background refresh, pre-fetched periods for instant tab switching
-- Added exe-os agent memory integration (auto-detected)
-- Dark mode forced on popover, custom programmatic owl icon (NSBezierPath)
+- Added exe-os agent memory and spend integration (auto-detected, model-aware pricing)
+- Per-project spend breakdown in the menubar (24h / 7d / 30d)
+- Launch at login via SMAppService, quit button, macOS app icon
+- Dark mode forced on popover, dynamic provider tabs (no empty states)
 
 **Why we forked:**
 - We need full control over the data pipeline to integrate with exe-os (our AI employee operating system)
