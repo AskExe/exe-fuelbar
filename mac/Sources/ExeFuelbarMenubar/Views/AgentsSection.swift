@@ -167,7 +167,7 @@ private struct SpendRow: View {
     }
 }
 
-/// Compact cost cell — shows $X.XX or dash when zero.
+/// Compact cost cell — shows $X (whole dollars) or dash when zero.
 private struct SpendCell: View {
     let value: Double
 
@@ -183,7 +183,7 @@ private struct SpendCell: View {
 
     private var text: String {
         if value <= 0 { return "—" }
-        return value.asCompactCurrency()
+        return value.asCompactCurrencyWhole()
     }
 }
 

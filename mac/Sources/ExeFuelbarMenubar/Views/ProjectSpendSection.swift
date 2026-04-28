@@ -67,7 +67,7 @@ private struct ProjectCostCell: View {
     let value: Double
 
     var body: some View {
-        Text(value > 0 ? value.asCompactCurrency() : "—")
+        Text(value > 0 ? value.asCompactCurrencyWhole() : "—")
             .font(.codeMono(size: 10, weight: .medium))
             .tracking(-0.2)
             .monospacedDigit()
