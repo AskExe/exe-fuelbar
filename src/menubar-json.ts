@@ -86,6 +86,8 @@ export type MenubarPayload = {
     daily: DailyHistoryEntry[]
   }
   agentStats: AgentStatsPayload | null
+  exeOsDetected: boolean
+  statsFileAge: number | null
   projectSpend: Array<{ name: string; cost24h: number; cost7d: number; cost30d: number; sessions: number }> | null
 }
 
@@ -326,6 +328,8 @@ export function buildMenubarPayload(
   dailyHistory?: DailyHistoryEntry[],
   agentStats?: AgentStatsPayload | null,
   projectSpend?: Array<{ name: string; cost24h: number; cost7d: number; cost30d: number; sessions: number }> | null,
+  exeOsDetected?: boolean,
+  statsFileAge?: number | null,
 ): MenubarPayload {
   return {
     generated: new Date().toISOString(),
@@ -345,6 +349,8 @@ export function buildMenubarPayload(
     optimize: buildOptimize(optimize),
     history: buildHistory(dailyHistory),
     agentStats: agentStats ?? null,
+    exeOsDetected: exeOsDetected ?? false,
+    statsFileAge: statsFileAge ?? null,
     projectSpend: projectSpend ?? null,
   }
 }

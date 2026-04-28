@@ -8,6 +8,8 @@ struct MenubarPayload: Codable, Sendable {
     let optimize: OptimizeBlock
     let history: HistoryBlock
     let agentStats: AgentStatsBlock?
+    let exeOsDetected: Bool?
+    let statsFileAge: Double?
     let projectSpend: [ProjectSpendEntry]?
 }
 
@@ -185,6 +187,8 @@ extension MenubarPayload {
         optimize: OptimizeBlock(findingCount: 0, savingsUSD: 0, topFindings: []),
         history: HistoryBlock(daily: []),
         agentStats: nil,
+        exeOsDetected: nil,
+        statsFileAge: nil,
         projectSpend: nil
     )
 }

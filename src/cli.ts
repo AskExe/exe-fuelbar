@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import { Command } from 'commander'
@@ -526,13 +526,25 @@ program
       const optimize = opts.optimize === false ? null : await scanAndDetect(scanProjects, scanRange)
 
       // Read exe-os agent stats if available (auto-detect exe-os presence)
+      const exeOsDir = join(homedir(), '.exe-os')
+      const exeOsDetected = existsSync(exeOsDir)
       let agentStats: AgentStatsPayload | null = null
+      let statsFileAge: number | null = null
       try {
-        const statsPath = join(homedir(), '.exe-os', 'agent-stats.json')
+        const statsPath = join(exeOsDir, 'agent-stats.json')
         if (existsSync(statsPath)) {
-          agentStats = JSON.parse(readFileSync(statsPath, 'utf-8')) as AgentStatsPayload
+          statsFileAge = Math.round((Date.now() - statSync(statsPath).mtimeMs) / 1000)
+          const parsed = JSON.parse(readFileSync(statsPath, 'utf-8'))
+          if (parsed && Array.isArray(parsed.agents) && typeof parsed.generated === 'string') {
+            agentStats = parsed as AgentStatsPayload
+          } else {
+            process.stderr.write('[exe-fuelbar] agent-stats.json has unexpected schema, ignoring\n')
+          }
         }
-      } catch { /* exe-os not installed or stats not yet written */ }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        process.stderr.write(`[exe-fuelbar] agent-stats.json found but failed to parse: ${msg}\n`)
+      }
 
       // Per-agent spend: use daemon's token data (from session_agent_map + JSONL parsing)
       // then estimate USD cost from token counts using blended pricing.
@@ -548,7 +560,7 @@ program
       ])
       const projectSpend = buildProjectSpend(proj24h, proj7d, proj30d)
 
-      console.log(JSON.stringify(buildMenubarPayload(currentData, providers, optimize, dailyHistory, agentStats, projectSpend)))
+      console.log(JSON.stringify(buildMenubarPayload(currentData, providers, optimize, dailyHistory, agentStats, projectSpend, exeOsDetected, statsFileAge)))
       return
     }
 
@@ -911,6 +923,48 @@ program
     await loadPricing()
     const { range } = getDateRange(opts.period)
     await renderCompare(range, opts.provider)
+  })
+
+program
+  .command('agent-status')
+  .description('Diagnose exe-os agent data pipeline')
+  .action(() => {
+    const exeOsDir = join(homedir(), '.exe-os')
+    const statsPath = join(exeOsDir, 'agent-stats.json')
+    const pidPath = join(exeOsDir, 'exed.pid')
+
+    const dirExists = existsSync(exeOsDir)
+    const statsExists = dirExists && existsSync(statsPath)
+    const pidExists = dirExists && existsSync(pidPath)
+
+    const lines: string[] = []
+    lines.push(`exe-os directory:  ${dirExists ? '✓ found' : '✗ not found'} (${exeOsDir})`)
+    lines.push(`daemon pid file:   ${pidExists ? '✓ found' : '✗ not found'}`)
+
+    if (!statsExists) {
+      lines.push(`agent-stats.json:  ✗ not found`)
+    } else {
+      try {
+        const ageSeconds = Math.round((Date.now() - statSync(statsPath).mtimeMs) / 1000)
+        const raw = readFileSync(statsPath, 'utf-8')
+        const parsed = JSON.parse(raw)
+        if (parsed && Array.isArray(parsed.agents) && typeof parsed.generated === 'string') {
+          const agentCount = parsed.agents.length
+          const stale = ageSeconds > 300 ? ' ⚠️ STALE' : ''
+          lines.push(`agent-stats.json:  ✓ valid (${agentCount} agent${agentCount !== 1 ? 's' : ''}, ${ageSeconds}s old${stale})`)
+          for (const a of parsed.agents) {
+            lines.push(`  • ${a.id}: ${a.total} memories`)
+          }
+        } else {
+          lines.push(`agent-stats.json:  ✗ invalid schema`)
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        lines.push(`agent-stats.json:  ✗ parse error: ${msg}`)
+      }
+    }
+
+    console.log(lines.join('\n'))
   })
 
 program.parse()

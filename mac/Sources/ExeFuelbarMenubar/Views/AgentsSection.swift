@@ -15,10 +15,37 @@ struct AgentsSection: View {
                 isExpanded: $isExpanded
             ) {
                 VStack(spacing: 0) {
-                    MemorySubSection(stats: stats)
-                    Divider().opacity(0.3).padding(.vertical, 6)
-                    SpendSubSection(stats: stats)
+                    if stats.agents.isEmpty {
+                        Text("No agents running yet")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                            .padding(.vertical, 8)
+                    } else {
+                        if let age = store.payload.statsFileAge, age > 300 {
+                            HStack(spacing: 4) {
+                                Text("⚠️")
+                                    .font(.system(size: 10))
+                                Text("Data is \(Int(age / 60))m old")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.bottom, 4)
+                        }
+                        MemorySubSection(stats: stats)
+                        Divider().opacity(0.3).padding(.vertical, 6)
+                        SpendSubSection(stats: stats)
+                    }
                 }
+            }
+        } else if store.payload.exeOsDetected == true {
+            CollapsibleSection(
+                caption: "AI Employees",
+                isExpanded: $isExpanded
+            ) {
+                Text("Waiting for daemon data…")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .padding(.vertical, 8)
             }
         }
     }
