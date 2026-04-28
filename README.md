@@ -12,7 +12,7 @@
   <a href="https://www.npmjs.com/package/exe-fuelbar"><img src="https://img.shields.io/npm/v/exe-fuelbar.svg" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/exe-fuelbar"><img src="https://img.shields.io/npm/dt/exe-fuelbar.svg" alt="total downloads" /></a>
   <a href="https://github.com/AskExe/exe-fuelbar/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/exe-fuelbar.svg" alt="license" /></a>
-  <a href="https://github.com/AskExe/exe-fuelbar"><img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg" alt="node version" /></a>
+  <a href="https://github.com/AskExe/exe-fuelbar"><img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg" alt="node version" /></a>
   <a href="https://discord.gg/pJ2DMWvtAx"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord" /></a>
 </p>
 

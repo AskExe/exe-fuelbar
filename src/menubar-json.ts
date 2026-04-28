@@ -181,13 +181,13 @@ export function mergeAgentSpend(stats: AgentStatsPayload | null, spend: Record<s
 
 /**
  * Fallback: extracts the exe-os agent name from a Claude project directory name.
- * Pattern: `-Users-exeai-exe-os--worktrees-tom` → "tom"
- * Nested: `-Users-exeai-exe-os--worktrees-yoshi--worktrees-tom` → "tom" (innermost)
- * No worktree: `-Users-exeai-exe-fuelbar` → "user"
+ * Pattern: `-Users-alice-exe-os--worktrees-worker1` → "worker1"
+ * Nested: `-Users-alice-exe-os--worktrees-worker2--worktrees-worker1` → "worker1" (innermost)
+ * No worktree: `-Users-alice-exe-fuelbar` → "user"
  */
 /**
  * Builds per-project spend from parsed project summaries. Cleans up directory-style
- * names into human-readable project names (e.g. "-Users-exeai-exe-os" → "exe-os").
+ * names into human-readable project names (e.g. "-Users-alice-exe-os" → "exe-os").
  */
 export function buildProjectSpend(
   projects24h: ProjectSummary[],
@@ -222,9 +222,9 @@ export function buildProjectSpend(
 
 /**
  * Extracts a human-readable project name from the Claude projects directory name.
- * "-Users-exeai-exe-os" → "exe-os"
- * "-Users-exeai-exe-os--worktrees-tom" → "exe-os"
- * "-Users-exeai-CMO" → "CMO"
+ * "-Users-alice-exe-os" → "exe-os"
+ * "-Users-alice-exe-os--worktrees-worker1" → "exe-os"
+ * "-Users-alice-CMO" → "CMO"
  */
 function cleanProjectName(dirName: string): string {
   // Strip worktree suffix — attribute to the base project
