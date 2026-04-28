@@ -33,17 +33,19 @@ struct AgentTabStrip: View {
     }
 
     private var visibleFilters: [ProviderFilter] {
-        // Show a tab for every provider detected on this machine. The CLI decides what
-        // to include in the providers map based on session dirs / credential files it
-        // finds, so zero-cost-today is still "installed" and the user expects to see
-        // it. Only providers that aren't installed at all are absent from the map.
-        let detectedKeys = Set(
-            allProvidersToday.current.providers.keys.map { $0.lowercased() }
+        // Only show providers that have actual spend (cost > 0). Providers that are merely
+        // "installed" (CLI found credential files) but never used just add clutter.
+        let activeKeys = Set(
+            allProvidersToday.current.providers
+                .filter { $0.value > 0 }
+                .keys.map { $0.lowercased() }
         )
-        return ProviderFilter.allCases.filter { filter in
+        let tabs = ProviderFilter.allCases.filter { filter in
             if filter == .all { return true }
-            return detectedKeys.contains(filter.rawValue.lowercased())
+            return activeKeys.contains(filter.rawValue.lowercased())
         }
+        // If only .all remains (no provider has spend), show just .all without tabs
+        return tabs.count > 1 ? tabs : []
     }
 
     private func cost(for filter: ProviderFilter) -> Double? {
@@ -62,15 +64,19 @@ private struct AgentTab: View {
     let cost: Double?
     let isActive: Bool
 
+    /// Dark purple for text on gold backgrounds — darker than brandEmberDeep for better contrast.
+    private static let activeTextColor = Color(red: 0x3A/255.0, green: 0x28/255.0, blue: 0x5C/255.0)
+
     var body: some View {
         HStack(spacing: 5) {
             Text(filter.rawValue)
-                .font(.system(size: 11.5, weight: .medium))
+                .font(.system(size: 11.5, weight: .semibold))
                 .tracking(-0.05)
+                .foregroundStyle(isActive ? Self.activeTextColor : .secondary)
             if let cost, cost > 0 {
                 Text(cost.asCompactCurrency())
                     .font(.codeMono(size: 10.5, weight: .medium))
-                    .foregroundStyle(isActive ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.secondary))
+                    .foregroundStyle(isActive ? Self.activeTextColor : .secondary)
                     .tracking(-0.2)
             }
         }
@@ -80,7 +86,6 @@ private struct AgentTab: View {
             RoundedRectangle(cornerRadius: 6)
                 .fill(isActive ? AnyShapeStyle(Theme.brandAccent) : AnyShapeStyle(Color.secondary.opacity(0.08)))
         )
-        .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
         .contentShape(Rectangle())
     }
 }

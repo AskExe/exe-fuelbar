@@ -65,7 +65,7 @@ private struct InsightPillSwitcher: View {
                 } label: {
                     Text(mode.rawValue)
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(selected == mode ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(selected == mode ? AnyShapeStyle(Theme.brandPurpleDark) : AnyShapeStyle(.secondary))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(
@@ -1059,8 +1059,7 @@ private struct PlanNoCredentialsView: View {
                 Task { await store.refreshSubscription() }
             }
             .controlSize(.small)
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.brandAccent)
+            .goldButton()
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
@@ -1091,8 +1090,7 @@ private struct PlanFailedView: View {
                 Task { await store.refreshSubscription() }
             }
             .controlSize(.small)
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.brandAccent)
+            .goldButton()
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)

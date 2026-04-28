@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Observation
+import ServiceManagement
 
 private let refreshIntervalSeconds: UInt64 = 60
 private let nanosPerSecond: UInt64 = 1_000_000_000
@@ -34,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        registerBundledFonts()
 
         ProcessInfo.processInfo.automaticTerminationSupportEnabled = false
         ProcessInfo.processInfo.disableSuddenTermination()
@@ -50,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         setupWakeObservers()
         setupDistributedNotificationListener()
         installLaunchAgentIfNeeded()
+        registerLoginItemIfNeeded()
         Task { await updateChecker.checkIfNeeded() }
     }
 
@@ -130,6 +133,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             load.waitUntilExit()
         } catch {
             NSLog("Exe Fuelbar: LaunchAgent setup failed: \(error)")
+        }
+    }
+
+    /// Registers the app as a Login Item so it launches automatically at startup.
+    /// Uses SMAppService (macOS 13+). Only registers once — if the user later disables
+    /// it via System Settings → General → Login Items, we respect that choice.
+    private func registerLoginItemIfNeeded() {
+        let service = SMAppService.mainApp
+        if service.status == .notRegistered {
+            do {
+                try service.register()
+                NSLog("Exe Fuelbar: registered as Login Item")
+            } catch {
+                NSLog("Exe Fuelbar: Login Item registration failed: \(error)")
+            }
         }
     }
 
@@ -294,6 +312,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     func popoverShouldDetach(_ popover: NSPopover) -> Bool {
         false
+    }
+
+    // MARK: - Font Registration
+
+    /// Register bundled custom fonts (Epilogue) so they're available via Font.custom().
+    private func registerBundledFonts() {
+        let fontNames = ["Epilogue-Bold"]
+        for name in fontNames {
+            guard let url = Bundle.module.url(forResource: name, withExtension: "ttf") else {
+                NSLog("Exe Fuelbar: font \(name).ttf not found in bundle")
+                continue
+            }
+            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        }
     }
 
     // MARK: - Owl Icon

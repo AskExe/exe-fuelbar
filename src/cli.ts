@@ -9,7 +9,7 @@ import { parseAllSessions, filterProjectsByName } from './parser.js'
 import { convertCost } from './currency.js'
 import { renderStatusBar } from './format.js'
 import { type PeriodData, type ProviderCost, type AgentStatsPayload } from './menubar-json.js'
-import { buildMenubarPayload } from './menubar-json.js'
+import { buildMenubarPayload, computeAgentSpend, mergeAgentSpend, buildProjectSpend, estimateAgentCosts } from './menubar-json.js'
 import { addNewDays, getDaysInRange, loadDailyCache, saveDailyCache, withDailyCacheLock } from './daily-cache.js'
 import { aggregateProjectsIntoDays, buildPeriodDataFromDays, dateKey } from './day-aggregator.js'
 import { CATEGORY_LABELS, type DateRange, type ProjectSummary, type TaskCategory } from './types.js'
@@ -534,7 +534,21 @@ program
         }
       } catch { /* exe-os not installed or stats not yet written */ }
 
-      console.log(JSON.stringify(buildMenubarPayload(currentData, providers, optimize, dailyHistory, agentStats)))
+      // Per-agent spend: use daemon's token data (from session_agent_map + JSONL parsing)
+      // then estimate USD cost from token counts using blended pricing.
+      if (agentStats) {
+        agentStats = estimateAgentCosts(agentStats)
+      }
+
+      // Per-project spend across 24h/7d/30d periods.
+      const [proj24h, proj7d, proj30d] = await Promise.all([
+        parseAllSessions(getDateRange('today').range, 'all'),
+        parseAllSessions(getDateRange('week').range, 'all'),
+        parseAllSessions(getDateRange('30days').range, 'all'),
+      ])
+      const projectSpend = buildProjectSpend(proj24h, proj7d, proj30d)
+
+      console.log(JSON.stringify(buildMenubarPayload(currentData, providers, optimize, dailyHistory, agentStats, projectSpend)))
       return
     }
 

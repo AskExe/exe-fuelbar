@@ -28,9 +28,9 @@ const PERIOD_LABELS: Record<Period, string> = {
 }
 
 const MIN_WIDE = 90
-const ORANGE = '#FF8C42'
+const ORANGE = '#F59E0B'
 const DIM = '#555555'
-const GOLD = '#FFD700'
+const GOLD = '#F5D76E'
 const PLAN_BAR_WIDTH = 10
 
 const LANG_DISPLAY_NAMES: Record<string, string> = {
@@ -44,36 +44,36 @@ const LANG_DISPLAY_NAMES: Record<string, string> = {
 }
 
 const PANEL_COLORS = {
-  overview: '#FF8C42',
-  daily: '#5B9EF5',
-  project: '#5BF5A0',
-  sessions: '#FF6B6B',
-  model: '#E05BF5',
-  activity: '#F5C85B',
-  tools: '#5BF5E0',
-  mcp: '#F55BE0',
-  bash: '#F5A05B',
+  overview: '#F5D76E',   // Exe Gold
+  daily: '#6B4C9A',      // Aura purple
+  project: '#F5D76E',    // Exe Gold
+  sessions: '#E8774A',   // Warm accent
+  model: '#6B4C9A',      // Aura purple
+  activity: '#F5D76E',   // Exe Gold
+  tools: '#E8774A',      // Warm accent
+  mcp: '#6B4C9A',        // Aura purple
+  bash: '#E8774A',       // Warm accent
 }
 
 const PROVIDER_COLORS: Record<string, string> = {
-  claude: '#FF8C42',
-  codex: '#5BF5A0',
-  cursor: '#00B4D8',
-  opencode: '#A78BFA',
-  pi: '#F472B6',
-  all: '#FF8C42',
+  claude: '#DA7E56',    // Anthropic warm (matches menubar)
+  codex: '#4A7D5C',     // Codex green (matches menubar)
+  cursor: '#3F6B8C',    // Cursor blue (matches menubar)
+  opencode: '#6B4C9A',  // Aura purple
+  pi: '#E8774A',        // Warm accent
+  all: '#F5D76E',       // Exe Gold
 }
 
 const CATEGORY_COLORS: Record<TaskCategory, string> = {
   building: '#5B9EF5',
-  debugging: '#F55B5B',
+  debugging: '#DC2626',
   testing: '#E05BF5',
-  research: '#5BF5E0',
-  devops: '#5BF5A0',
+  research: '#6B4C9A',
+  devops: '#16A34A',
   planning: '#7B9EF5',
 }
 
-const IMPACT_PANEL_COLORS: Record<string, string> = { high: '#F55B5B', medium: ORANGE, low: DIM }
+const IMPACT_PANEL_COLORS: Record<string, string> = { high: '#DC2626', medium: ORANGE, low: DIM }
 
 function toHex(r: number, g: number, b: number): string {
   return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('')
@@ -177,10 +177,10 @@ function Overview({ projects, label, width, planUsage }: { projects: ProjectSumm
   const planPct = planUsage ? `${planUsage.percentUsed.toFixed(1)}%` : ''
   const planColor = planUsage
     ? planUsage.status === 'over'
-      ? '#F55B5B'
+      ? '#DC2626'
       : planUsage.status === 'near'
         ? ORANGE
-        : '#5BF58C'
+        : '#86EFAC'
     : DIM
 
   return (
@@ -371,7 +371,7 @@ function ActivityBreakdown({ projects, pw, bw }: { projects: ProjectSummary[]; p
             <Text color={CATEGORY_COLORS[cat as TaskCategory] ?? '#666666'}> {fit(CATEGORY_LABELS[cat as TaskCategory] ?? cat, 13)}</Text>
             <Text color={GOLD}>{formatCost(data.costUSD).padStart(8)}</Text>
             <Text>{String(data.turns).padStart(6)}</Text>
-            <Text color={data.editTurns === 0 ? DIM : oneShotPct === '100%' ? '#5BF58C' : ORANGE}>{String(oneShotPct).padStart(7)}</Text>
+            <Text color={data.editTurns === 0 ? DIM : oneShotPct === '100%' ? '#86EFAC' : ORANGE}>{String(oneShotPct).padStart(7)}</Text>
           </Text>
         )
       })}
@@ -511,7 +511,7 @@ function PeriodTabs({ active, providerName, showProvider }: { active: Period; pr
 
 function FindingAction({ action }: { action: WasteAction }) {
   const lines = action.type === 'file-content' ? action.content.split('\n') : action.type === 'command' ? action.text.split('\n') : [action.text]
-  return (<><Text dimColor>{action.label}</Text>{lines.map((line, i) => <Text key={i} color="#5BF5E0">  {line}</Text>)}</>)
+  return (<><Text dimColor>{action.label}</Text>{lines.map((line, i) => <Text key={i} color="#6B4C9A">  {line}</Text>)}</>)
 }
 
 function FindingPanel({ index, finding, costRate, width }: { index: number; finding: WasteFinding; costRate: number; width: number }) {
@@ -525,7 +525,7 @@ function FindingPanel({ index, finding, costRate, width }: { index: number; find
         <Text bold>{index}. {finding.title}</Text>
         <Text>  </Text>
         <Text color={color}>{label}</Text>
-        {trendBadge && <Text color="#5BF5A0">{trendBadge}</Text>}
+        {trendBadge && <Text color="#16A34A">{trendBadge}</Text>}
       </Text>
       <Text dimColor wrap="wrap">{finding.explanation}</Text>
       <Text color={GOLD}>Savings: ~{formatTokens(finding.tokensSaved)} tokens (~{formatCost(costSaved)})</Text>
@@ -535,7 +535,7 @@ function FindingPanel({ index, finding, costRate, width }: { index: number; find
   )
 }
 
-const GRADE_COLORS: Record<string, string> = { A: '#5BF5A0', B: '#5BF5A0', C: GOLD, D: ORANGE, F: '#F55B5B' }
+const GRADE_COLORS: Record<string, string> = { A: '#16A34A', B: '#16A34A', C: GOLD, D: ORANGE, F: '#DC2626' }
 
 function OptimizeView({ findings, costRate, projects, label, width, healthScore, healthGrade }: { findings: WasteFinding[]; costRate: number; projects: ProjectSummary[]; label: string; width: number; healthScore: number; healthGrade: string }) {
   const periodCost = projects.reduce((s, p) => s + p.totalCostUSD, 0)
@@ -553,7 +553,7 @@ function OptimizeView({ findings, costRate, projects, label, width, healthScore,
           <Text bold color={gradeColor}>{healthGrade}</Text>
           <Text dimColor> ({healthScore}/100)</Text>
         </Text>
-        <Text color="#5BF5A0" wrap="truncate-end">Savings: ~{formatTokens(totalTokens)} tokens (~{formatCost(totalCost)}, ~{pct}% of spend)</Text>
+        <Text color="#16A34A" wrap="truncate-end">Savings: ~{formatTokens(totalTokens)} tokens (~{formatCost(totalCost)}, ~{pct}% of spend)</Text>
       </Box>
       {findings.map((f, i) => <FindingPanel key={i} index={i + 1} finding={f} costRate={costRate} width={width} />)}
       <Box paddingX={1} width={width}><Text dimColor>Token estimates are approximate.</Text></Box>
@@ -576,7 +576,7 @@ function StatusBar({ width, showProvider, view, findingCount, optimizeAvailable,
         <Text color={ORANGE} bold>4</Text><Text dimColor> month   </Text>
         <Text color={ORANGE} bold>5</Text><Text dimColor> all time</Text>
         {!isOptimize && optimizeAvailable && findingCount != null && findingCount > 0 && (
-          <><Text dimColor>   </Text><Text color={ORANGE} bold>o</Text><Text dimColor> optimize</Text><Text color="#F55B5B"> ({findingCount})</Text></>
+          <><Text dimColor>   </Text><Text color={ORANGE} bold>o</Text><Text dimColor> optimize</Text><Text color="#DC2626"> ({findingCount})</Text></>
         )}
         {!isOptimize && compareAvailable && (
           <><Text dimColor>   </Text><Text color={ORANGE} bold>c</Text><Text dimColor> compare</Text></>

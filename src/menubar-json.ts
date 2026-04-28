@@ -19,6 +19,10 @@ export type ProviderCost = {
   cost: number
 }
 import type { OptimizeResult } from './optimize.js'
+import type { ProjectSummary } from './types.js'
+import { readdirSync, readFileSync } from 'fs'
+import { join } from 'path'
+import { homedir } from 'os'
 
 const TOP_ACTIVITIES_LIMIT = 20
 const TOP_MODELS_LIMIT = 20
@@ -82,12 +86,165 @@ export type MenubarPayload = {
     daily: DailyHistoryEntry[]
   }
   agentStats: AgentStatsPayload | null
+  projectSpend: Array<{ name: string; cost24h: number; cost7d: number; cost30d: number; sessions: number }> | null
 }
+
+type SpendBucket = { inputTokens?: number; outputTokens?: number; costUSD?: number; sessions?: number }
 
 export type AgentStatsPayload = {
   generated: string
-  agents: Array<{ id: string; total: number; growth7d: number }>
+  agents: Array<{
+    id: string; total: number
+    growth24h?: number; growth7d: number; growth30d?: number
+    spend24h?: SpendBucket; spend7d?: SpendBucket; spend30d?: SpendBucket
+    costUSD?: number; cost24h?: number; cost7d?: number; cost30d?: number
+  }>
   daemon: { uptime: number; pid: number }
+}
+
+/**
+ * Extracts per-agent costUSD for 24h/7d/30d from the daemon's pre-computed
+ * model-aware pricing in each spend bucket.
+ */
+export function estimateAgentCosts(stats: AgentStatsPayload): AgentStatsPayload {
+  return {
+    ...stats,
+    agents: stats.agents.map(a => ({
+      ...a,
+      cost24h: a.spend24h?.costUSD ?? 0,
+      cost7d: a.spend7d?.costUSD ?? 0,
+      cost30d: a.spend30d?.costUSD ?? 0,
+      costUSD: a.spend30d?.costUSD ?? 0,
+    })),
+  }
+}
+
+/**
+ * Loads the exe-os session cache which maps Claude Code session UUIDs to agent IDs.
+ * Each file in ~/.exe-os/session-cache/ is named {sessionUUID}.json and contains
+ * { agentId, agentRole, startedAt }.
+ */
+function loadSessionAgentMap(): Map<string, string> {
+  const map = new Map<string, string>()
+  try {
+    const cacheDir = join(homedir(), '.exe-os', 'session-cache')
+    const files = readdirSync(cacheDir)
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue
+      const sessionId = file.replace('.json', '')
+      try {
+        const raw = readFileSync(join(cacheDir, file), 'utf-8')
+        const data = JSON.parse(raw) as { agentId?: string }
+        if (data.agentId) {
+          // Normalize: strip session suffixes like "yoshi-exe1" → "yoshi"
+          const baseId = data.agentId.replace(/-exe\d+$/, '')
+          map.set(sessionId, baseId)
+        }
+      } catch { /* skip malformed files */ }
+    }
+  } catch { /* session cache not available */ }
+  return map
+}
+
+/**
+ * Derives per-agent spend from project summaries using the exe-os session cache.
+ * Each session's UUID is looked up in ~/.exe-os/session-cache/ to find which
+ * agent created it. Falls back to worktree path heuristic for unmapped sessions.
+ */
+export function computeAgentSpend(projects: ProjectSummary[]): Record<string, number> {
+  const agentMap = loadSessionAgentMap()
+  const spend: Record<string, number> = {}
+
+  for (const p of projects) {
+    for (const sess of p.sessions) {
+      const agent = agentMap.get(sess.sessionId)
+        ?? extractAgentFromProject(p.project)
+      spend[agent] = (spend[agent] ?? 0) + sess.totalCostUSD
+    }
+  }
+  return spend
+}
+
+/** Merge CLI-computed spend into daemon-supplied agent stats. */
+export function mergeAgentSpend(stats: AgentStatsPayload | null, spend: Record<string, number>): AgentStatsPayload | null {
+  if (!stats) return null
+  const knownIds = new Set(stats.agents.map(a => a.id))
+  const merged = stats.agents.map(a => ({ ...a, costUSD: spend[a.id] ?? 0 }))
+  // Add agents that appear in spend but not in memory stats (rare edge case)
+  for (const [id, costUSD] of Object.entries(spend)) {
+    if (!knownIds.has(id) && id !== 'user') {
+      merged.push({ id, total: 0, growth7d: 0, costUSD })
+    }
+  }
+  return { ...stats, agents: merged }
+}
+
+/**
+ * Fallback: extracts the exe-os agent name from a Claude project directory name.
+ * Pattern: `-Users-exeai-exe-os--worktrees-tom` → "tom"
+ * Nested: `-Users-exeai-exe-os--worktrees-yoshi--worktrees-tom` → "tom" (innermost)
+ * No worktree: `-Users-exeai-exe-fuelbar` → "user"
+ */
+/**
+ * Builds per-project spend from parsed project summaries. Cleans up directory-style
+ * names into human-readable project names (e.g. "-Users-exeai-exe-os" → "exe-os").
+ */
+export function buildProjectSpend(
+  projects24h: ProjectSummary[],
+  projects7d: ProjectSummary[],
+  projects30d: ProjectSummary[],
+): Array<{ name: string; cost24h: number; cost7d: number; cost30d: number; sessions: number }> {
+  const aggregate = (projects: ProjectSummary[]) => {
+    const byName: Record<string, { cost: number; sessions: number }> = {}
+    for (const p of projects) {
+      const name = cleanProjectName(p.project)
+      if (!byName[name]) byName[name] = { cost: 0, sessions: 0 }
+      byName[name].cost += p.totalCostUSD
+      byName[name].sessions += p.sessions.length
+    }
+    return byName
+  }
+  const d24 = aggregate(projects24h)
+  const d7 = aggregate(projects7d)
+  const d30 = aggregate(projects30d)
+  const allNames = new Set([...Object.keys(d24), ...Object.keys(d7), ...Object.keys(d30)])
+  return Array.from(allNames)
+    .map(name => ({
+      name,
+      cost24h: d24[name]?.cost ?? 0,
+      cost7d: d7[name]?.cost ?? 0,
+      cost30d: d30[name]?.cost ?? 0,
+      sessions: d30[name]?.sessions ?? d7[name]?.sessions ?? d24[name]?.sessions ?? 0,
+    }))
+    .filter(d => d.cost30d > 0 || d.cost7d > 0 || d.cost24h > 0)
+    .sort((a, b) => b.cost30d - a.cost30d)
+}
+
+/**
+ * Extracts a human-readable project name from the Claude projects directory name.
+ * "-Users-exeai-exe-os" → "exe-os"
+ * "-Users-exeai-exe-os--worktrees-tom" → "exe-os"
+ * "-Users-exeai-CMO" → "CMO"
+ */
+function cleanProjectName(dirName: string): string {
+  // Strip worktree suffix — attribute to the base project
+  const base = dirName.replace(/--worktrees-.*$/, '')
+  // Take last path segment (after the last single hyphen that follows a known pattern)
+  const parts = base.split('-')
+  // Find the user directory prefix and take everything after it
+  // Pattern: -Users-{username}-{project...}
+  const usersIdx = parts.indexOf('Users')
+  if (usersIdx >= 0 && usersIdx + 2 < parts.length) {
+    return parts.slice(usersIdx + 2).join('-')
+  }
+  return dirName
+}
+
+function extractAgentFromProject(dirName: string): string {
+  const matches = [...dirName.matchAll(/--worktrees-([a-zA-Z][a-zA-Z0-9]*)/g)]
+  if (matches.length === 0) return 'user'
+  const lastMatch = matches[matches.length - 1]
+  return lastMatch[1].toLowerCase()
 }
 
 function oneShotRateFor(editTurns: number, oneShotTurns: number): number | null {
@@ -168,6 +325,7 @@ export function buildMenubarPayload(
   optimize: OptimizeResult | null,
   dailyHistory?: DailyHistoryEntry[],
   agentStats?: AgentStatsPayload | null,
+  projectSpend?: Array<{ name: string; cost24h: number; cost7d: number; cost30d: number; sessions: number }> | null,
 ): MenubarPayload {
   return {
     generated: new Date().toISOString(),
@@ -187,5 +345,6 @@ export function buildMenubarPayload(
     optimize: buildOptimize(optimize),
     history: buildHistory(dailyHistory),
     agentStats: agentStats ?? null,
+    projectSpend: projectSpend ?? null,
   }
 }

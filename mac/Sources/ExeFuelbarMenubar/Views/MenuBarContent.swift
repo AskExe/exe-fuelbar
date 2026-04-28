@@ -114,6 +114,8 @@ struct MenuBarContent: View {
                         Divider().opacity(0.5)
                         AgentsSection()
                         Divider().opacity(0.5)
+                        ProjectSpendSection()
+                        Divider().opacity(0.5)
                         FindingsSection()
                     }
                 }
@@ -218,15 +220,15 @@ private struct Header: View {
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 (
-                    Text("Exe ").foregroundStyle(.primary)
-                    + Text("Fuelbar").foregroundStyle(Theme.brandAccent)
+                    Text("EXE ").foregroundStyle(Theme.brandAccent)
+                    + Text("FUELBAR").foregroundStyle(Color(red: 0xD4/255.0, green: 0x61/255.0, blue: 0x9C/255.0))
                 )
-                .font(.system(size: 13, weight: .semibold))
-                .tracking(-0.15)
-                Text("AI Coding Cost Tracker")
-                    .font(.system(size: 10.5))
+                .font(.custom("Epilogue", size: 14).weight(.bold))
+                .tracking(2)
+                Text("AGENT MEMORY & USAGE DASHBOARD")
+                    .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -262,8 +264,7 @@ private struct UpdateBadge: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(Theme.brandAccent)
+        .goldButton()
         .controlSize(.mini)
         .disabled(updateChecker.isUpdating)
     }
@@ -401,9 +402,16 @@ struct FooterBar: View {
                     .font(.system(size: 11, weight: .semibold))
                     .labelStyle(.titleAndIcon)
             }
-            .buttonStyle(.borderedProminent)
+            .goldButton()
             .controlSize(.small)
-            .tint(Theme.brandAccent)
+
+            Button { NSApp.terminate(nil) } label: {
+                Image(systemName: "power")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help("Quit Exe Fuelbar")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

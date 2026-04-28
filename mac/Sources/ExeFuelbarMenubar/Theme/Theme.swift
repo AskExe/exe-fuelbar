@@ -9,6 +9,8 @@ enum Theme {
     static let brandAccentDark   = Color(red: 0xFA/255.0, green: 0xDF/255.0, blue: 0x85/255.0)
     // Aura purple for depth/glow (#6B4C9A)
     static let brandEmberDeep    = Color(red: 0x6B/255.0, green: 0x4C/255.0, blue: 0x9A/255.0)
+    // Dark purple for text on gold backgrounds (#3A285C) — high contrast
+    static let brandPurpleDark   = Color(red: 0x3A/255.0, green: 0x28/255.0, blue: 0x5C/255.0)
     // Pressed / darker gold (#E6C54F)
     static let brandEmberGlow    = Color(red: 0xE6/255.0, green: 0xC5/255.0, blue: 0x4F/255.0)
 
@@ -36,5 +38,15 @@ extension Font {
     /// SF Mono for currency values -- developer-tool identity.
     static func codeMono(size: CGFloat, weight: Font.Weight = .regular) -> Font {
         .system(size: size, weight: weight, design: .monospaced)
+    }
+}
+
+/// Modifier for gold-background buttons that need purple text instead of white.
+extension View {
+    func goldButton() -> some View {
+        self
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.brandAccent)
+            .foregroundStyle(Theme.brandPurpleDark)
     }
 }

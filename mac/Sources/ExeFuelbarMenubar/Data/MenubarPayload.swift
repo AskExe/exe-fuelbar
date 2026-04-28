@@ -8,6 +8,29 @@ struct MenubarPayload: Codable, Sendable {
     let optimize: OptimizeBlock
     let history: HistoryBlock
     let agentStats: AgentStatsBlock?
+    let projectSpend: [ProjectSpendEntry]?
+}
+
+struct ProjectSpendEntry: Codable, Sendable, Identifiable {
+    let name: String
+    let cost24h: Double
+    let cost7d: Double
+    let cost30d: Double
+    let sessions: Int
+
+    var id: String { name }
+
+    enum CodingKeys: String, CodingKey {
+        case name, cost24h, cost7d, cost30d, sessions
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = try c.decode(String.self, forKey: .name)
+        cost24h = try c.decodeIfPresent(Double.self, forKey: .cost24h) ?? 0
+        cost7d = try c.decodeIfPresent(Double.self, forKey: .cost7d) ?? 0
+        cost30d = try c.decodeIfPresent(Double.self, forKey: .cost30d) ?? 0
+        sessions = try c.decodeIfPresent(Int.self, forKey: .sessions) ?? 0
+    }
 }
 
 // MARK: - Exe OS Agent Memory Stats (auto-detected)
@@ -21,7 +44,29 @@ struct AgentStatsBlock: Codable, Sendable {
 struct AgentStat: Codable, Sendable, Identifiable {
     let id: String
     let total: Int
+    let growth24h: Int
     let growth7d: Int
+    let growth30d: Int
+    let costUSD: Double
+    let cost24h: Double
+    let cost7d: Double
+    let cost30d: Double
+
+    enum CodingKeys: String, CodingKey {
+        case id, total, growth24h, growth7d, growth30d, costUSD, cost24h, cost7d, cost30d
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        total = try c.decode(Int.self, forKey: .total)
+        growth24h = try c.decodeIfPresent(Int.self, forKey: .growth24h) ?? 0
+        growth7d = try c.decode(Int.self, forKey: .growth7d)
+        growth30d = try c.decodeIfPresent(Int.self, forKey: .growth30d) ?? 0
+        costUSD = try c.decodeIfPresent(Double.self, forKey: .costUSD) ?? 0
+        cost24h = try c.decodeIfPresent(Double.self, forKey: .cost24h) ?? 0
+        cost7d = try c.decodeIfPresent(Double.self, forKey: .cost7d) ?? 0
+        cost30d = try c.decodeIfPresent(Double.self, forKey: .cost30d) ?? 0
+    }
 }
 
 struct DaemonInfo: Codable, Sendable {
@@ -139,6 +184,7 @@ extension MenubarPayload {
         ),
         optimize: OptimizeBlock(findingCount: 0, savingsUSD: 0, topFindings: []),
         history: HistoryBlock(daily: []),
-        agentStats: nil
+        agentStats: nil,
+        projectSpend: nil
     )
 }

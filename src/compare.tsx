@@ -8,12 +8,12 @@ import { parseAllSessions } from './parser.js'
 import { getAllProviders } from './providers/index.js'
 import type { ProjectSummary, DateRange } from './types.js'
 
-const ORANGE = '#FF8C42'
-const GREEN = '#5BF5A0'
+const ORANGE = '#F59E0B'
+const GREEN = '#16A34A'
 const DIM = '#888888'
-const GOLD = '#FFD700'
-const BAR_A = '#6495ED'
-const BAR_B = '#5BF5A0'
+const GOLD = '#F5D76E'
+const BAR_A = '#6B4C9A'
+const BAR_B = '#F5D76E'
 const LOW_DATA_THRESHOLD = 20
 const LABEL_WIDTH = 20
 const VALUE_WIDTH = 14
