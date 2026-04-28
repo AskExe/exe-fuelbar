@@ -1,12 +1,9 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/logo.png" alt="Exe Fuelbar" width="120" />
+  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/owl-icon.png" alt="Exe Fuelbar" width="120" />
 </p>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/title.svg" />
-    <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/title.svg" alt="EXE FUELBAR" width="420" />
-  </picture>
+  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/owl-header.png" alt="EXE FUELBAR" width="480" />
 </p>
 
 <p align="center"><strong>The fuel gauge for your AI coding day.</strong></p>
@@ -101,7 +98,8 @@ exe-fuelbar export -f json                     # JSON export
 
 ## Menubar app
 
-<img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/menubar-0.8.0.png" alt="Exe Fuelbar macOS menubar" width="420" />
+<!-- Screenshot: native macOS menubar popover with gold/purple Exe Foundry Bold theme -->
+<!-- To update: screencapture -w assets/menubar-v0.2.0.png (click the Fuelbar menubar icon) -->
 
 ```bash
 exe-fuelbar menubar
