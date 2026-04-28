@@ -4,8 +4,7 @@ import Observation
 import ServiceManagement
 
 private let refreshIntervalSeconds: UInt64 = 60
-private let nanosPerSecond: UInt64 = 1_000_000_000
-private let refreshIntervalNanos: UInt64 = refreshIntervalSeconds * nanosPerSecond
+private let idleRefreshIntervalSeconds: UInt64 = 300
 private let statusItemWidth: CGFloat = NSStatusItem.variableLength
 private let popoverWidth: CGFloat = 360
 private let popoverHeight: CGFloat = 660
@@ -30,7 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private let store = AppStore()
     let updateChecker = UpdateChecker()
     private var dispatchTimer: DispatchSourceTimer?
-    /// Held for the lifetime of the app to opt out of App Nap and Automatic Termination.
+    /// Held for the lifetime of the app to prevent Automatic Termination.
     private var backgroundActivity: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -40,8 +39,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         ProcessInfo.processInfo.automaticTerminationSupportEnabled = false
         ProcessInfo.processInfo.disableSuddenTermination()
         backgroundActivity = ProcessInfo.processInfo.beginActivity(
-            options: [.userInitiated, .automaticTerminationDisabled, .suddenTerminationDisabled],
-            reason: "Exe Fuelbar menubar polls AI coding cost every 60 seconds while idle in the background."
+            options: [.automaticTerminationDisabled, .suddenTerminationDisabled],
+            reason: "Exe Fuelbar menubar needs to stay running to update cost display."
         )
 
         restorePersistedCurrency()
@@ -50,8 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         observeStore()
         startRefreshLoop()
         setupWakeObservers()
-        setupDistributedNotificationListener()
-        installLaunchAgentIfNeeded()
+        cleanupLegacyLaunchAgent()
         registerLoginItemIfNeeded()
         Task { await updateChecker.checkIfNeeded() }
     }
@@ -74,66 +72,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
-    private func setupDistributedNotificationListener() {
-        DistributedNotificationCenter.default().addObserver(
-            forName: NSNotification.Name("com.exe-fuelbar.refresh"),
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.forceRefresh() }
-        }
-    }
-
-    private func installLaunchAgentIfNeeded() {
+    /// Removes the legacy LaunchAgent plist that older versions installed. The redundant
+    /// system-level timer doubled refresh work and prevented App Nap from throttling the app.
+    private func cleanupLegacyLaunchAgent() {
         let fm = FileManager.default
-        let agentName = "com.exe-fuelbar.refresh.plist"
         let home = fm.homeDirectoryForCurrentUser.path
-        let destPath = "\(home)/Library/LaunchAgents/\(agentName)"
-
-        let plist = """
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.exe-fuelbar.refresh</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/usr/bin/osascript</string>
-        <string>-l</string>
-        <string>JavaScript</string>
-        <string>-e</string>
-        <string>ObjC.import("Foundation"); $.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately("com.exe-fuelbar.refresh", $(), $(), true)</string>
-    </array>
-    <key>StartInterval</key>
-    <integer>60</integer>
-    <key>RunAtLoad</key>
-    <true/>
-</dict>
-</plist>
-"""
-
-        do {
-            let existing = try? String(contentsOfFile: destPath, encoding: .utf8)
-            if existing == plist { return }
-
-            try fm.createDirectory(atPath: "\(home)/Library/LaunchAgents", withIntermediateDirectories: true)
-            try plist.write(toFile: destPath, atomically: true, encoding: .utf8)
-
-            let unload = Process()
-            unload.launchPath = "/bin/launchctl"
-            unload.arguments = ["unload", destPath]
-            try? unload.run()
-            unload.waitUntilExit()
-
-            let load = Process()
-            load.launchPath = "/bin/launchctl"
-            load.arguments = ["load", destPath]
-            try load.run()
-            load.waitUntilExit()
-        } catch {
-            NSLog("Exe Fuelbar: LaunchAgent setup failed: \(error)")
-        }
+        let destPath = "\(home)/Library/LaunchAgents/com.exe-fuelbar.refresh.plist"
+        guard fm.fileExists(atPath: destPath) else { return }
+        let unload = Process()
+        unload.launchPath = "/bin/launchctl"
+        unload.arguments = ["unload", destPath]
+        try? unload.run()
+        unload.waitUntilExit()
+        try? fm.removeItem(atPath: destPath)
     }
 
     /// Registers the app as a Login Item so it launches automatically at startup.
@@ -154,8 +105,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func forceRefresh() {
         Task {
             await store.refreshQuietly(period: .today)
-            refreshStatusButton()
-            await store.refresh(includeOptimize: true)
             refreshStatusButton()
         }
     }
@@ -195,15 +144,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             await store.prefetchAllPeriods()
         }
 
-        // Use DispatchSourceTimer for more reliable background execution
+        // Popover starts closed — use the idle interval. popoverWillShow will tighten to 60s.
+        rescheduleTimer(intervalSeconds: idleRefreshIntervalSeconds)
+    }
+
+    private func rescheduleTimer(intervalSeconds: UInt64) {
+        dispatchTimer?.cancel()
         let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now() + .seconds(Int(refreshIntervalSeconds)), repeating: .seconds(Int(refreshIntervalSeconds)), leeway: .seconds(1))
+        timer.schedule(deadline: .now() + .seconds(Int(intervalSeconds)), repeating: .seconds(Int(intervalSeconds)), leeway: .seconds(2))
         timer.setEventHandler { [weak self] in
             guard let self = self else { return }
             Task { @MainActor in
-                // Background timer: use refreshQuietly for ALL periods so the loading
-                // overlay never flashes while the popover is open. The menubar badge
-                // and popover body still update silently via @Observable diffing.
                 await self.store.refreshQuietly(period: .today)
                 self.refreshStatusButton()
                 let selected = self.store.selectedPeriod
@@ -217,13 +168,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     private func observeStore() {
-        withObservationTracking {
-            _ = store.payload
-            _ = store.todayPayload
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                self?.refreshStatusButton()
-                self?.observeStore()
+        Task { @MainActor [weak self] in
+            while let self {
+                await withCheckedContinuation { continuation in
+                    withObservationTracking {
+                        _ = self.store.payload
+                        _ = self.store.todayPayload
+                    } onChange: {
+                        continuation.resume()
+                    }
+                }
+                self.refreshStatusButton()
             }
         }
     }
@@ -312,6 +267,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     func popoverShouldDetach(_ popover: NSPopover) -> Bool {
         false
+    }
+
+    func popoverWillShow(_ notification: Notification) {
+        Task {
+            await store.refreshQuietly(period: .today)
+            refreshStatusButton()
+        }
+        rescheduleTimer(intervalSeconds: refreshIntervalSeconds)
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        rescheduleTimer(intervalSeconds: idleRefreshIntervalSeconds)
     }
 
     // MARK: - Font Registration
