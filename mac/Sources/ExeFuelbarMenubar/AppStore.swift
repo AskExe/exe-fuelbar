@@ -320,7 +320,9 @@ extension Double {
 
     func asCompactCurrencyWhole() -> String {
         let state = CurrencyState.shared
-        return "\(state.symbol)\(Int((self * state.rate).rounded()))"
+        let whole = Int((self * state.rate).rounded())
+        let formatted = thousandsFormatter.string(from: NSNumber(value: whole)) ?? "\(whole)"
+        return "\(state.symbol)\(formatted)"
     }
 }
 
