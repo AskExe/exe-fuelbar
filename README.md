@@ -1,12 +1,8 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/owl-icon.png" alt="Fuelbar" width="120" />
+  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/owl-header.png" alt="FUELBAR" width="520" />
 </p>
 
-<p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/owl-header.png" alt="FUELBAR" width="480" />
-</p>
-
-<p align="center"><strong>The fuel gauge for your AI coding day.</strong></p>
+<p align="center"><strong>The fuel gauge for your AI coding day — by <a href="https://github.com/AskExe">Exe AI</a>.</strong></p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/exe-fuelbar"><img src="https://img.shields.io/npm/v/exe-fuelbar.svg" alt="npm version" /></a>
@@ -17,10 +13,10 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AskExe/exe-fuelbar/main/assets/dashboard.jpg" alt="Exe Fuelbar TUI dashboard" width="620" />
+  <img src="https://raw.githubusercontent.com/AskExe/exe-fuelbar/main/assets/dashboard.jpg" alt="Fuelbar TUI dashboard" width="620" />
 </p>
 
-You're spending real money on AI coding tools every day. Exe Fuelbar shows you exactly where it goes — cost, tokens, models, projects, and whether the AI is getting it right the first time or burning through retry loops. One command, zero cloud, everything local.
+You're spending real money on AI coding tools every day. Fuelbar shows you exactly where it goes — cost, tokens, models, projects, and whether the AI is getting it right the first time or burning through retry loops. One command, zero cloud, everything local.
 
 ```bash
 npm install -g exe-fuelbar
@@ -237,10 +233,10 @@ No configuration needed. The section appears when exe-os is present and hides wh
 
 ## Origin & attribution
 
-Exe Fuelbar is forked from [codeburn](https://github.com/getagentseal/codeburn) by [AgentSeal](https://github.com/getagentseal) (MIT license). We forked rather than contributed upstream because our roadmap diverges significantly:
+Fuelbar is forked from [codeburn](https://github.com/getagentseal/codeburn) by [AgentSeal](https://github.com/getagentseal) (MIT license). We forked rather than contributed upstream because our roadmap diverges significantly:
 
 **What we changed:**
-- Rebranded to Exe Fuelbar with the Exe Foundry Bold design system (gold + purple palette, owl icon)
+- Rebranded to Fuelbar with the Exe Foundry Bold design system (gold + purple palette, owl icon)
 - Consolidated activity categories from 13 → 6 (less overlap, clearer signal)
 - Fixed double-counting bugs in the menubar JSON pipeline (cache + fresh parse overlap)
 - Performance: 7-day and 30-day queries from 2-5 seconds down to ~1 second (parse today only, use daily cache for history)

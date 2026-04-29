@@ -56,7 +56,7 @@ Override the binary via the `EXE_FUELBAR_BIN` environment variable (default: `ex
 mac/
 ├── Package.swift                     SwiftPM manifest
 ├── Sources/ExeFuelbarMenubar/
-│   ├── Exe FuelbarApp.swift             @main + MenuBarExtra scene
+│   ├── FuelbarApp.swift                 @main + MenuBarExtra scene
 │   ├── AppStore.swift                @Observable store + enums
 │   ├── Data/MenubarPayload.swift     Codable payload types + placeholder
 │   ├── Theme/Theme.swift             Design tokens (Exe Foundry Bold palette)
