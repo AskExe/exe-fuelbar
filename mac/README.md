@@ -59,7 +59,7 @@ mac/
 │   ├── Exe FuelbarApp.swift             @main + MenuBarExtra scene
 │   ├── AppStore.swift                @Observable store + enums
 │   ├── Data/MenubarPayload.swift     Codable payload types + placeholder
-│   ├── Theme/Theme.swift             Design tokens (warm terracotta palette)
+│   ├── Theme/Theme.swift             Design tokens (Exe Foundry Bold palette)
 │   └── Views/MenuBarContent.swift    Popover layout + footer action bar
 └── README.md                         This file
 ```
@@ -76,13 +76,14 @@ Live data wired. Next iterations:
 
 ## Design tokens
 
-Sourced from `~/exe-fuelbar-menubar-mac-swiftui.html`. Warm terracotta-ember palette:
+Exe Foundry Bold palette (gold accent on dark purple):
 
-- Accent (light): `#C9521D`
-- Accent (dark): `#E8774A`
-- Ember deep: `#8B3E13`
-- Ember glow: `#F0A070`
-- Surface (light): `#FAF7F3`
-- Surface (dark): `#1C1816`
+- Brand accent (gold): `#F5D76E`
+- Brand accent hover: `#FADF85`
+- Aura purple (depth/glow): `#6B4C9A`
+- Dark purple (text on gold): `#3A285C`
+- Pressed gold: `#E6C54F`
+- Surface (light): `#FAF8F3`
+- Surface (dark): `#1A1528`
 
-SF Mono for currency values; SF Pro Rounded for hero.
+SF Mono for currency values; SF Pro for UI text. Web equivalents: Epilogue (headings), Manrope (body).
