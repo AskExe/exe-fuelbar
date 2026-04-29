@@ -47,8 +47,13 @@ const FALLBACK_PRICING: Record<string, ModelCosts> = {
   'gpt-4.1': { inputCostPerToken: 2e-6, outputCostPerToken: 8e-6, cacheWriteCostPerToken: 2e-6, cacheReadCostPerToken: 0.5e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
   'gpt-4.1-mini': { inputCostPerToken: 0.4e-6, outputCostPerToken: 1.6e-6, cacheWriteCostPerToken: 0.4e-6, cacheReadCostPerToken: 0.1e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
   'gpt-4.1-nano': { inputCostPerToken: 0.1e-6, outputCostPerToken: 0.4e-6, cacheWriteCostPerToken: 0.1e-6, cacheReadCostPerToken: 0.025e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
-  'o3': { inputCostPerToken: 10e-6, outputCostPerToken: 40e-6, cacheWriteCostPerToken: 10e-6, cacheReadCostPerToken: 2.5e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
+  'o3': { inputCostPerToken: 2e-6, outputCostPerToken: 8e-6, cacheWriteCostPerToken: 2e-6, cacheReadCostPerToken: 0.5e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
   'o4-mini': { inputCostPerToken: 1.1e-6, outputCostPerToken: 4.4e-6, cacheWriteCostPerToken: 1.1e-6, cacheReadCostPerToken: 0.275e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
+  'codex-mini-latest': { inputCostPerToken: 1.5e-6, outputCostPerToken: 6e-6, cacheWriteCostPerToken: 1.5e-6, cacheReadCostPerToken: 0.375e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
+  'codex-mini': { inputCostPerToken: 1.5e-6, outputCostPerToken: 6e-6, cacheWriteCostPerToken: 1.5e-6, cacheReadCostPerToken: 0.375e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
+  'gpt-5.1-codex': { inputCostPerToken: 1.25e-6, outputCostPerToken: 10e-6, cacheWriteCostPerToken: 1.25e-6, cacheReadCostPerToken: 0.625e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
+  'gpt-5.1-codex-mini': { inputCostPerToken: 0.25e-6, outputCostPerToken: 2e-6, cacheWriteCostPerToken: 0.25e-6, cacheReadCostPerToken: 0.125e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
+  'gpt-5.2-codex': { inputCostPerToken: 1.75e-6, outputCostPerToken: 14e-6, cacheWriteCostPerToken: 1.75e-6, cacheReadCostPerToken: 0.875e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
   'MiniMax-M2.7-highspeed': { inputCostPerToken: 0.6e-6, outputCostPerToken: 2.4e-6, cacheWriteCostPerToken: 0.375e-6, cacheReadCostPerToken: 0.06e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
   'MiniMax-M2.7': { inputCostPerToken: 0.3e-6, outputCostPerToken: 1.2e-6, cacheWriteCostPerToken: 0.375e-6, cacheReadCostPerToken: 0.06e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
 }
@@ -161,11 +166,13 @@ function getCanonicalName(model: string): string {
 export function getModelCosts(model: string): ModelCosts | null {
   const canonical = resolveAlias(getCanonicalName(model))
 
-  if (pricingCache?.has(canonical)) return pricingCache.get(canonical)!
+  // Our curated prices (official direct API pricing) take precedence over
+  // LiteLLM which may return third-party provider markups (e.g. Vertex AI
+  // charges $1/$5 for Haiku 3.5 vs Anthropic direct at $0.80/$4).
+  // Exact matches only here — prefix matching happens below after LiteLLM.
+  if (Object.hasOwn(FALLBACK_PRICING, canonical)) return FALLBACK_PRICING[canonical]!
 
-  for (const [key, costs] of Object.entries(FALLBACK_PRICING)) {
-    if (canonical === key || canonical.startsWith(key + '-')) return costs
-  }
+  if (pricingCache?.has(canonical)) return pricingCache.get(canonical)!
 
   for (const [key, costs] of pricingCache ?? new Map()) {
     if (canonical.startsWith(key)) return costs
