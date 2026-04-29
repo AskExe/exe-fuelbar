@@ -52,7 +52,7 @@ cat > "${BUNDLE}/Contents/Info.plist" <<PLIST
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Exe Fuelbar Menubar</string>
+    <string>Fuelbar</string>
     <key>CFBundleExecutable</key>
     <string>${EXECUTABLE_NAME}</string>
     <key>CFBundleIconFile</key>

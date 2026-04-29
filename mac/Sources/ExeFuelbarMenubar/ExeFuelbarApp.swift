@@ -40,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         ProcessInfo.processInfo.disableSuddenTermination()
         backgroundActivity = ProcessInfo.processInfo.beginActivity(
             options: [.automaticTerminationDisabled, .suddenTerminationDisabled],
-            reason: "Exe Fuelbar menubar needs to stay running to update cost display."
+            reason: "Fuelbar needs to stay running to update cost display."
         )
 
         restorePersistedCurrency()

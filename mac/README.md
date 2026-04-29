@@ -1,6 +1,6 @@
-# Exe Fuelbar Menubar (macOS)
+# Fuelbar Menubar (macOS)
 
-Native Swift + SwiftUI menubar app. The exe-fuelbar menubar surface.
+Native Swift + SwiftUI menubar app. The Fuelbar menubar surface.
 
 ## Requirements
 

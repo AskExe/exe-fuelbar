@@ -1,43 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="800" height="200">
   <!--
-    Exe Fuelbar Header Banner — Owl + wordmark
+    Fuelbar Header Banner
     800x200 for README display
-    Brand: Exe Foundry Bold — Gold #F5D76E, White text, Dark Purple #1A1528
+    Brand: Pink FUELBAR on black, EXE gold logo bottom-left
   -->
 
   <!-- Background -->
-  <rect width="800" height="200" rx="16" fill="#1A1528"/>
+  <rect width="800" height="200" rx="16" fill="#000000"/>
 
-  <!-- Owl — scaled from 100x100 grid to ~150px tall -->
-  <g transform="translate(18, 16) scale(1.65)">
-    <!-- Ear tufts -->
-    <polygon points="26,32 18,6 36,26" fill="#F5D76E"/>
-    <polygon points="74,32 82,6 64,26" fill="#F5D76E"/>
+  <!-- FUELBAR wordmark — centered, pink -->
+  <text x="400" y="110" text-anchor="middle" font-family="Futura, Avenir Next, Helvetica Neue, sans-serif" font-weight="bold" font-size="64" letter-spacing="10" fill="#D4619C">FUELBAR</text>
 
-    <!-- Head -->
-    <ellipse cx="50" cy="38" rx="24" ry="24" fill="#F5D76E"/>
-
-    <!-- Body -->
-    <ellipse cx="50" cy="70" rx="21" ry="23" fill="#F5D76E"/>
-
-    <!-- Feet -->
-    <ellipse cx="40" cy="92" rx="7" ry="3.5" fill="#F5D76E"/>
-    <ellipse cx="60" cy="92" rx="7" ry="3.5" fill="#F5D76E"/>
-
-    <!-- Eye sockets -->
-    <ellipse cx="38" cy="35" rx="10" ry="10" fill="#1A1528"/>
-    <ellipse cx="62" cy="35" rx="10" ry="10" fill="#1A1528"/>
-
-    <!-- Beak -->
-    <polygon points="46,46 50,53 54,46" fill="#1A1528"/>
-
-    <!-- Pupils -->
-    <ellipse cx="38" cy="35" rx="4.5" ry="4.5" fill="#F5D76E"/>
-    <ellipse cx="62" cy="35" rx="4.5" ry="4.5" fill="#F5D76E"/>
-  </g>
-
-  <!-- Wordmark -->
-  <text x="210" y="118" font-family="Futura, Avenir Next, Helvetica Neue, sans-serif" font-weight="bold" font-size="54" letter-spacing="8">
-    <tspan fill="#FFFFFF">EXE</tspan><tspan fill="#F5D76E" dx="18">FUELBAR</tspan>
-  </text>
+  <!-- EXE gold logo — bottom left -->
+  <text x="28" y="184" font-family="Futura, Avenir Next, Helvetica Neue, sans-serif" font-weight="bold" font-size="18" letter-spacing="4" fill="#F5D76E">EXE</text>
 </svg>

@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/owl-icon.png" alt="Exe Fuelbar" width="120" />
+  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/owl-icon.png" alt="Fuelbar" width="120" />
 </p>
 
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/owl-header.png" alt="EXE FUELBAR" width="480" />
+  <img src="https://cdn.jsdelivr.net/gh/AskExe/exe-fuelbar@main/assets/owl-header.png" alt="FUELBAR" width="480" />
 </p>
 
 <p align="center"><strong>The fuel gauge for your AI coding day.</strong></p>

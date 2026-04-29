@@ -221,10 +221,8 @@ private struct Header: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                (
-                    Text("EXE ").foregroundStyle(Theme.brandAccent)
-                    + Text("FUELBAR").foregroundStyle(Color(red: 0xD4/255.0, green: 0x61/255.0, blue: 0x9C/255.0))
-                )
+                Text("FUELBAR")
+                .foregroundStyle(Color(red: 0xD4/255.0, green: 0x61/255.0, blue: 0x9C/255.0))
                 .font(.custom("Epilogue", size: 14).weight(.bold))
                 .tracking(2)
                 Text("AGENT MEMORY & USAGE DASHBOARD")
@@ -307,7 +305,7 @@ struct StarBanner: View {
                     NSWorkspace.shared.open(starBannerGitHubURL)
                 } label: {
                     HStack(spacing: 4) {
-                        Text("Enjoying Exe Fuelbar?")
+                        Text("Enjoying Fuelbar?")
                             .foregroundStyle(.primary)
                         Text("Star us on GitHub")
                             .foregroundStyle(Theme.brandAccent)
@@ -411,7 +409,7 @@ struct FooterBar: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .help("Quit Exe Fuelbar")
+            .help("Quit Fuelbar")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
