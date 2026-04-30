@@ -22,7 +22,7 @@ vi.mock('node:fs/promises', async (importOriginal) => {
     ...actual,
     stat: vi.fn().mockRejectedValue(new Error('ENOENT')),
     mkdir: vi.fn().mockResolvedValue(undefined),
-    mkdtemp: vi.fn().mockResolvedValue('/tmp/exe-fuelbar-menubar-mock'),
+    mkdtemp: vi.fn().mockResolvedValue('/tmp/exe-watcher-menubar-mock'),
     rename: vi.fn().mockResolvedValue(undefined),
     rm: vi.fn().mockResolvedValue(undefined),
   }
@@ -47,24 +47,24 @@ type InstallResult = Awaited<ReturnType<typeof installMenubarApp>>
 // The regex lives in the module as a constant. We replicate it here for the
 // pattern-matching tests since it is not exported. The spec asks us to verify
 // the pattern, and duplicating a one-line regex is the pragmatic approach.
-const ASSET_PATTERN = /^ExeFuelbarMenubar-.*\.zip$/
+const ASSET_PATTERN = /^ExeWatcherMenubar-.*\.zip$/
 
 describe('menubar-installer', () => {
   const savedEnv: Record<string, string | undefined> = {}
 
   beforeEach(() => {
-    savedEnv['EXE_FUELBAR_FORCE_MACOS_MAJOR'] = process.env.EXE_FUELBAR_FORCE_MACOS_MAJOR
+    savedEnv['EXE_WATCHER_FORCE_MACOS_MAJOR'] = process.env.EXE_WATCHER_FORCE_MACOS_MAJOR
     // Default: force macOS 15 so platform checks pass unless a test overrides
-    process.env.EXE_FUELBAR_FORCE_MACOS_MAJOR = '15'
+    process.env.EXE_WATCHER_FORCE_MACOS_MAJOR = '15'
     vi.mocked(os.platform).mockReturnValue('darwin')
   })
 
   afterEach(() => {
     // Restore env vars
-    if (savedEnv['EXE_FUELBAR_FORCE_MACOS_MAJOR'] === undefined) {
-      delete process.env.EXE_FUELBAR_FORCE_MACOS_MAJOR
+    if (savedEnv['EXE_WATCHER_FORCE_MACOS_MAJOR'] === undefined) {
+      delete process.env.EXE_WATCHER_FORCE_MACOS_MAJOR
     } else {
-      process.env.EXE_FUELBAR_FORCE_MACOS_MAJOR = savedEnv['EXE_FUELBAR_FORCE_MACOS_MAJOR']
+      process.env.EXE_WATCHER_FORCE_MACOS_MAJOR = savedEnv['EXE_WATCHER_FORCE_MACOS_MAJOR']
     }
     vi.restoreAllMocks()
   })
@@ -80,12 +80,12 @@ describe('menubar-installer', () => {
     })
 
     it('throws "macOS 14+ required" when major version is 13', async () => {
-      process.env.EXE_FUELBAR_FORCE_MACOS_MAJOR = '13'
+      process.env.EXE_WATCHER_FORCE_MACOS_MAJOR = '13'
       await expect(installMenubarApp()).rejects.toThrow(/macOS 14\+ required/)
     })
 
     it('passes platform check when major version is 14', async () => {
-      process.env.EXE_FUELBAR_FORCE_MACOS_MAJOR = '14'
+      process.env.EXE_WATCHER_FORCE_MACOS_MAJOR = '14'
 
       // Mock global fetch to return a valid release payload so the installer
       // progresses past the platform check. It will still fail later when
@@ -94,7 +94,7 @@ describe('menubar-installer', () => {
         tag_name: 'v0.1.1',
         assets: [
           {
-            name: 'ExeFuelbarMenubar-v0.1.1.zip',
+            name: 'ExeWatcherMenubar-v0.1.1.zip',
             browser_download_url: 'https://example.com/fake.zip',
           },
         ],
@@ -137,7 +137,7 @@ describe('menubar-installer', () => {
 
   describe('InstallResult type shape', () => {
     it('has installedPath (string) and launched (boolean) when install succeeds', async () => {
-      process.env.EXE_FUELBAR_FORCE_MACOS_MAJOR = '15'
+      process.env.EXE_WATCHER_FORCE_MACOS_MAJOR = '15'
 
       // Simulate the app already being installed: stat resolves (file exists),
       // and pgrep says it's running.
@@ -159,7 +159,7 @@ describe('menubar-installer', () => {
 
       expect(typeof result.installedPath).toBe('string')
       expect(typeof result.launched).toBe('boolean')
-      expect(result.installedPath).toContain('ExeFuelbarMenubar.app')
+      expect(result.installedPath).toContain('ExeWatcherMenubar.app')
       expect(result.launched).toBe(true)
     })
   })
@@ -169,24 +169,24 @@ describe('menubar-installer', () => {
   // -----------------------------------------------------------------------
 
   describe('ASSET_PATTERN regex', () => {
-    it('matches "ExeFuelbarMenubar-v0.1.1.zip"', () => {
-      expect(ASSET_PATTERN.test('ExeFuelbarMenubar-v0.1.1.zip')).toBe(true)
+    it('matches "ExeWatcherMenubar-v0.1.1.zip"', () => {
+      expect(ASSET_PATTERN.test('ExeWatcherMenubar-v0.1.1.zip')).toBe(true)
     })
 
-    it('matches "ExeFuelbarMenubar-v2.0.0-beta.zip"', () => {
-      expect(ASSET_PATTERN.test('ExeFuelbarMenubar-v2.0.0-beta.zip')).toBe(true)
+    it('matches "ExeWatcherMenubar-v2.0.0-beta.zip"', () => {
+      expect(ASSET_PATTERN.test('ExeWatcherMenubar-v2.0.0-beta.zip')).toBe(true)
     })
 
     it('does not match "SomethingElse.zip"', () => {
       expect(ASSET_PATTERN.test('SomethingElse.zip')).toBe(false)
     })
 
-    it('does not match "ExeFuelbarMenubar.zip" (no dash after name)', () => {
-      expect(ASSET_PATTERN.test('ExeFuelbarMenubar.zip')).toBe(false)
+    it('does not match "ExeWatcherMenubar.zip" (no dash after name)', () => {
+      expect(ASSET_PATTERN.test('ExeWatcherMenubar.zip')).toBe(false)
     })
 
-    it('does not match "ExeFuelbarMenubar-v0.1.1.tar.gz" (wrong extension)', () => {
-      expect(ASSET_PATTERN.test('ExeFuelbarMenubar-v0.1.1.tar.gz')).toBe(false)
+    it('does not match "ExeWatcherMenubar-v0.1.1.tar.gz" (wrong extension)', () => {
+      expect(ASSET_PATTERN.test('ExeWatcherMenubar-v0.1.1.tar.gz')).toBe(false)
     })
   })
 })

@@ -102,7 +102,7 @@ describe('process lifecycle', () => {
     it('--help exits with code 0', async () => {
       const result = await runCli(['--help'])
       expect(result.code).toBe(0)
-      expect(result.stdout).toContain('exe-fuelbar')
+      expect(result.stdout).toContain('exe-watcher')
     })
 
     it('invalid command exits with non-zero code', async () => {

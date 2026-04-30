@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds a universal ExeFuelbarMenubar.app bundle from the SwiftPM target and drops a
+# Builds a universal ExeWatcherMenubar.app bundle from the SwiftPM target and drops a
 # distributable zip alongside. Used by the GitHub release workflow; also runnable locally.
 #
 # Usage:
@@ -9,9 +9,9 @@
 set -euo pipefail
 
 VERSION="${1:-dev}"
-BUNDLE_NAME="ExeFuelbarMenubar.app"
-BUNDLE_ID="com.askexe.exe-fuelbar-menubar"
-EXECUTABLE_NAME="ExeFuelbarMenubar"
+BUNDLE_NAME="ExeWatcherMenubar.app"
+BUNDLE_ID="com.askexe.exe-watcher-menubar"
+EXECUTABLE_NAME="ExeWatcherMenubar"
 MIN_MACOS="14.0"
 
 repo_root() {
@@ -52,7 +52,7 @@ cat > "${BUNDLE}/Contents/Info.plist" <<PLIST
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Fuelbar</string>
+    <string>Watcher</string>
     <key>CFBundleExecutable</key>
     <string>${EXECUTABLE_NAME}</string>
     <key>CFBundleIconFile</key>
@@ -86,7 +86,7 @@ APPL????
 PKG
 
 # Copy app icon into bundle Resources so Finder/Dock/Spotlight display it.
-ICON_SRC="${MAC_DIR}/Sources/ExeFuelbarMenubar/Resources/AppIcon.icns"
+ICON_SRC="${MAC_DIR}/Sources/ExeWatcherMenubar/Resources/AppIcon.icns"
 if [[ -f "${ICON_SRC}" ]]; then
   cp "${ICON_SRC}" "${BUNDLE}/Contents/Resources/AppIcon.icns"
   echo "▸ App icon installed."
@@ -109,7 +109,7 @@ echo "▸ Ad-hoc signing..."
 codesign --force --sign - --timestamp=none --deep "${BUNDLE}" 2>/dev/null || true
 codesign --verify --deep --strict "${BUNDLE}" 2>/dev/null || echo "  (signature verify skipped)"
 
-ZIP_NAME="ExeFuelbarMenubar-${VERSION}.zip"
+ZIP_NAME="ExeWatcherMenubar-${VERSION}.zip"
 ZIP_PATH="${DIST_DIR}/${ZIP_NAME}"
 echo "▸ Packaging ${ZIP_NAME}..."
 (cd "${DIST_DIR}" && /usr/bin/ditto -c -k --keepParent "${BUNDLE_NAME}" "${ZIP_NAME}")

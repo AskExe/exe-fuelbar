@@ -8,8 +8,8 @@
   <!-- Black background -->
   <rect width="500" height="60" fill="#000000"/>
 
-  <!-- FUELBAR — pink, centered -->
-  <text x="250" y="42" text-anchor="middle" font-family="Epilogue, sans-serif" font-weight="700" font-size="42" letter-spacing="6" fill="#D4619C">FUELBAR</text>
+  <!-- WATCHER — pink, centered -->
+  <text x="250" y="42" text-anchor="middle" font-family="Epilogue, sans-serif" font-weight="700" font-size="42" letter-spacing="6" fill="#D4619C">WATCHER</text>
 
   <!-- EXE — gold, bottom left -->
   <text x="10" y="54" font-family="Epilogue, sans-serif" font-weight="700" font-size="12" letter-spacing="3" fill="#F5D76E">EXE</text>

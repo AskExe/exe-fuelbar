@@ -21,7 +21,7 @@ const tmpDirs: string[] = []
 let fakeHome: string
 
 beforeEach(async () => {
-  fakeHome = await mkdtemp(join(tmpdir(), 'exe-fuelbar-ctx-'))
+  fakeHome = await mkdtemp(join(tmpdir(), 'exe-watcher-ctx-'))
   tmpDirs.push(fakeHome)
   vi.mocked(homedir).mockReturnValue(fakeHome)
 })
@@ -70,7 +70,7 @@ describe('estimateContextBudget', () => {
   })
 
   it('counts MCP servers from project .mcp.json', async () => {
-    const projectDir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-proj-'))
+    const projectDir = await mkdtemp(join(tmpdir(), 'exe-watcher-proj-'))
     tmpDirs.push(projectDir)
 
     const config = {
@@ -95,7 +95,7 @@ describe('estimateContextBudget', () => {
     }
     await writeFile(join(claudeDir, 'settings.json'), JSON.stringify(homeConfig))
 
-    const projectDir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-proj-'))
+    const projectDir = await mkdtemp(join(tmpdir(), 'exe-watcher-proj-'))
     tmpDirs.push(projectDir)
     const projClaudeDir = join(projectDir, '.claude')
     await mkdir(projClaudeDir, { recursive: true })
@@ -149,7 +149,7 @@ describe('estimateContextBudget', () => {
   })
 
   it('includes project CLAUDE.md files', async () => {
-    const projectDir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-proj-'))
+    const projectDir = await mkdtemp(join(tmpdir(), 'exe-watcher-proj-'))
     tmpDirs.push(projectDir)
 
     // 200 chars => ceil(200/4) = 50 tokens
@@ -185,7 +185,7 @@ describe('estimateContextBudget', () => {
 
 describe('discoverProjectCwd', () => {
   it('returns cwd from the first jsonl line with a cwd field', async () => {
-    const sessionDir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-sess-'))
+    const sessionDir = await mkdtemp(join(tmpdir(), 'exe-watcher-sess-'))
     tmpDirs.push(sessionDir)
 
     const lines = [
@@ -199,7 +199,7 @@ describe('discoverProjectCwd', () => {
   })
 
   it('returns null for an empty directory', async () => {
-    const sessionDir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-sess-'))
+    const sessionDir = await mkdtemp(join(tmpdir(), 'exe-watcher-sess-'))
     tmpDirs.push(sessionDir)
 
     const result = await discoverProjectCwd(sessionDir)
@@ -207,7 +207,7 @@ describe('discoverProjectCwd', () => {
   })
 
   it('returns null for jsonl with no cwd field', async () => {
-    const sessionDir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-sess-'))
+    const sessionDir = await mkdtemp(join(tmpdir(), 'exe-watcher-sess-'))
     tmpDirs.push(sessionDir)
 
     const lines = [
@@ -226,7 +226,7 @@ describe('discoverProjectCwd', () => {
   })
 
   it('skips non-jsonl files and reads only .jsonl', async () => {
-    const sessionDir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-sess-'))
+    const sessionDir = await mkdtemp(join(tmpdir(), 'exe-watcher-sess-'))
     tmpDirs.push(sessionDir)
 
     // A .txt file with cwd should be ignored
@@ -237,7 +237,7 @@ describe('discoverProjectCwd', () => {
   })
 
   it('handles malformed JSON lines gracefully', async () => {
-    const sessionDir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-sess-'))
+    const sessionDir = await mkdtemp(join(tmpdir(), 'exe-watcher-sess-'))
     tmpDirs.push(sessionDir)
 
     const lines = [

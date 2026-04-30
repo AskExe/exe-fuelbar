@@ -11,7 +11,7 @@ import type { DateRange } from '../../src/types.js'
 const FIXTURE_DAY = Date.UTC(2026, 3, 16) // month index 3 = April (Date.UTC is 0-indexed)
 const RANGE_BEFORE_MS = FIXTURE_DAY - 24 * 60 * 60 * 1000
 const RANGE_AFTER_MS = FIXTURE_DAY + 24 * 60 * 60 * 1000
-const PROJECT_NAME = 'exe-fuelbar-poc-testing'
+const PROJECT_NAME = 'exe-watcher-poc-testing'
 
 function makeRange(offsetMs: number): DateRange {
   return {
@@ -48,7 +48,7 @@ describe('HIGH-1 prototype pollution via unchecked bracket-assign', () => {
   })
 
   async function setupPoc(fixture: string): Promise<string> {
-    const base = await mkdtemp(join(tmpdir(), 'exe-fuelbar-sec-'))
+    const base = await mkdtemp(join(tmpdir(), 'exe-watcher-sec-'))
     tmpDirs.push(base)
     const projectDir = join(base, 'projects', PROJECT_NAME)
     await mkdir(projectDir, { recursive: true })

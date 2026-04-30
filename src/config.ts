@@ -15,7 +15,7 @@ export type Plan = {
   setAt: string
 }
 
-export type ExeFuelbarConfig = {
+export type ExeWatcherConfig = {
   currency?: {
     code: string
     symbol?: string
@@ -26,23 +26,23 @@ export type ExeFuelbarConfig = {
 
 function getConfigDir(): string {
   const xdgConfig = process.env['XDG_CONFIG_HOME']
-  return join(xdgConfig || join(homedir(), '.config'), 'exe-fuelbar')
+  return join(xdgConfig || join(homedir(), '.config'), 'exe-watcher')
 }
 
 function getConfigPath(): string {
   return join(getConfigDir(), 'config.json')
 }
 
-export async function readConfig(): Promise<ExeFuelbarConfig> {
+export async function readConfig(): Promise<ExeWatcherConfig> {
   try {
     const raw = await readFile(getConfigPath(), 'utf-8')
-    return JSON.parse(raw) as ExeFuelbarConfig
+    return JSON.parse(raw) as ExeWatcherConfig
   } catch {
     return {}
   }
 }
 
-export async function saveConfig(config: ExeFuelbarConfig): Promise<void> {
+export async function saveConfig(config: ExeWatcherConfig): Promise<void> {
   await mkdir(getConfigDir(), { recursive: true })
   const configPath = getConfigPath()
   const tmpPath = `${configPath}.${randomBytes(8).toString('hex')}.tmp`

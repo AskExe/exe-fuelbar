@@ -35,7 +35,7 @@ afterEach(async () => {
 
 /** Create a temp directory to serve as CLAUDE_CONFIG_DIR and return its path. */
 async function setupTmpClaudeDir(): Promise<string> {
-  const base = await mkdtemp(join(tmpdir(), 'exe-fuelbar-parser-'))
+  const base = await mkdtemp(join(tmpdir(), 'exe-watcher-parser-'))
   tmpDirs.push(base)
   origClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR
   process.env.CLAUDE_CONFIG_DIR = base

@@ -169,7 +169,7 @@ function LoadingScreen({ width, dots }: { width: number; dots: number }) {
         ))}
       </Box>
       <Text> </Text>
-      <Text bold color={PINK}>FUELBAR</Text>
+      <Text bold color={PINK}>WATCHER</Text>
       <Text> </Text>
       <Text dimColor>Scanning sessions{dotStr.padEnd(3)}</Text>
     </Box>
@@ -216,7 +216,7 @@ function Overview({ projects, label, width, planUsage }: { projects: ProjectSumm
   return (
     <Box flexDirection="column" borderStyle="round" borderColor={PANEL_COLORS.overview} paddingX={1} width={width}>
       <Text wrap="truncate-end">
-        <Text bold color={ORANGE}>Exe Fuelbar</Text>
+        <Text bold color={ORANGE}>Exe Watcher</Text>
         <Text dimColor>  {label}</Text>
       </Text>
       <Text wrap="truncate-end">
@@ -578,7 +578,7 @@ function OptimizeView({ findings, costRate, projects, label, width, healthScore,
     <Box flexDirection="column" width={width}>
       <Box flexDirection="column" borderStyle="round" borderColor={ORANGE} paddingX={1} width={width}>
         <Text wrap="truncate-end">
-          <Text bold color={ORANGE}>Exe Fuelbar Optimize</Text>
+          <Text bold color={ORANGE}>Exe Watcher Optimize</Text>
           <Text dimColor>  {label}   Setup: </Text>
           <Text bold color={gradeColor}>{healthGrade}</Text>
           <Text dimColor> ({healthScore}/100)</Text>
@@ -625,7 +625,7 @@ function Row({ wide, width, children }: { wide: boolean; width: number; children
 function DashboardContent({ projects, period, columns, activeProvider, budgets, planUsage }: { projects: ProjectSummary[]; period: Period; columns?: number; activeProvider?: string; budgets?: Map<string, ContextBudget>; planUsage?: PlanUsage }) {
   const { dashWidth, wide, halfWidth, barWidth } = getLayout(columns)
   const isCursor = activeProvider === 'cursor'
-  if (projects.length === 0) return <Panel title="Exe Fuelbar" color={ORANGE} width={dashWidth}><Text dimColor>No usage data found for {PERIOD_LABELS[period]}.</Text></Panel>
+  if (projects.length === 0) return <Panel title="Exe Watcher" color={ORANGE} width={dashWidth}><Text dimColor>No usage data found for {PERIOD_LABELS[period]}.</Text></Panel>
   const pw = wide ? halfWidth : dashWidth
   const days = period === 'all' ? undefined : (period === 'month' || period === '30days' ? 31 : 14)
   return (
@@ -823,7 +823,7 @@ function InteractiveDashboard({ initialPeriod, initialProvider, refreshSeconds, 
                 <Text dimColor>Loading {PERIOD_LABELS[period]} model data...</Text>
               </Box>
             </Box>
-          : <Panel title="Fuelbar" color={ORANGE} width={dashWidth}><Text dimColor>Loading {PERIOD_LABELS[period]}...</Text></Panel>}
+          : <Panel title="Watcher" color={ORANGE} width={dashWidth}><Text dimColor>Loading {PERIOD_LABELS[period]}...</Text></Panel>}
         {view !== 'compare' && <StatusBar width={dashWidth} showProvider={multipleProviders} view={view} findingCount={0} optimizeAvailable={false} compareAvailable={false} />}
       </Box>
     )

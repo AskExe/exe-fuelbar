@@ -250,7 +250,7 @@ describe('scanSelfCorrections', () => {
   let tmpDir: string
 
   beforeEach(async () => {
-    tmpDir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-test-'))
+    tmpDir = await mkdtemp(join(tmpdir(), 'exe-watcher-test-'))
   })
 
   afterEach(async () => {
@@ -355,7 +355,7 @@ describe('scanSelfCorrections', () => {
   })
 
   it('accepts multiple sessionDirs and merges counts', async () => {
-    const dir2 = await mkdtemp(join(tmpdir(), 'exe-fuelbar-test2-'))
+    const dir2 = await mkdtemp(join(tmpdir(), 'exe-watcher-test2-'))
     try {
       const sessionA = join(tmpDir, 'session-a')
       const sessionB = join(dir2, 'session-b')

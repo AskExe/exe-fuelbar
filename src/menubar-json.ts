@@ -185,7 +185,7 @@ export function mergeAgentSpend(stats: AgentStatsPayload | null, spend: Record<s
  * Fallback: extracts the exe-os agent name from a Claude project directory name.
  * Pattern: `-Users-alice-exe-os--worktrees-worker1` → "worker1"
  * Nested: `-Users-alice-exe-os--worktrees-worker2--worktrees-worker1` → "worker1" (innermost)
- * No worktree: `-Users-alice-exe-fuelbar` → "user"
+ * No worktree: `-Users-alice-exe-watcher` → "user"
  */
 /**
  * Builds per-project spend from parsed project summaries. Cleans up directory-style

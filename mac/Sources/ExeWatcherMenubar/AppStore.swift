@@ -89,7 +89,7 @@ final class AppStore {
             lastError = nil
         } catch {
             lastError = String(describing: error)
-            NSLog("Exe Fuelbar: fetch failed for \(key.period.rawValue)/\(key.provider.rawValue): \(error)")
+            NSLog("Exe Watcher: fetch failed for \(key.period.rawValue)/\(key.provider.rawValue): \(error)")
         }
     }
 
@@ -102,7 +102,7 @@ final class AppStore {
             let fresh = try await DataClient.fetch(period: period, provider: .all, includeOptimize: false)
             cache[PayloadCacheKey(period: period, provider: .all)] = CachedPayload(payload: fresh, fetchedAt: Date())
         } catch {
-            NSLog("Exe Fuelbar: quiet refresh failed for \(period.rawValue)/all: \(error)")
+            NSLog("Exe Watcher: quiet refresh failed for \(period.rawValue)/all: \(error)")
         }
         // Also refresh the currently-selected provider if it's not .all, so the visible
         // popover tab picks up new data silently.
@@ -112,7 +112,7 @@ final class AppStore {
                 let fresh = try await DataClient.fetch(period: period, provider: provider, includeOptimize: false)
                 cache[PayloadCacheKey(period: period, provider: provider)] = CachedPayload(payload: fresh, fetchedAt: Date())
             } catch {
-                NSLog("Exe Fuelbar: quiet refresh failed for \(period.rawValue)/\(provider.rawValue): \(error)")
+                NSLog("Exe Watcher: quiet refresh failed for \(period.rawValue)/\(provider.rawValue): \(error)")
             }
         }
     }
@@ -135,7 +135,7 @@ final class AppStore {
             subscription = nil
             subscriptionError = String(describing: error)
             subscriptionLoadState = .failed
-            NSLog("Exe Fuelbar: subscription fetch failed: \(error)")
+            NSLog("Exe Watcher: subscription fetch failed: \(error)")
         }
     }
 

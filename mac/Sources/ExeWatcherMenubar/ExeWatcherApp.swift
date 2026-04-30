@@ -11,7 +11,7 @@ private let popoverHeight: CGFloat = 660
 private let menubarTitleFontSize: CGFloat = 13
 
 @main
-struct ExeFuelbarApp: App {
+struct ExeWatcherApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     var body: some Scene {
@@ -40,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         ProcessInfo.processInfo.disableSuddenTermination()
         backgroundActivity = ProcessInfo.processInfo.beginActivity(
             options: [.automaticTerminationDisabled, .suddenTerminationDisabled],
-            reason: "Fuelbar needs to stay running to update cost display."
+            reason: "Watcher needs to stay running to update cost display."
         )
 
         restorePersistedCurrency()
@@ -77,7 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func cleanupLegacyLaunchAgent() {
         let fm = FileManager.default
         let home = fm.homeDirectoryForCurrentUser.path
-        let destPath = "\(home)/Library/LaunchAgents/com.exe-fuelbar.refresh.plist"
+        let destPath = "\(home)/Library/LaunchAgents/com.exe-watcher.refresh.plist"
         guard fm.fileExists(atPath: destPath) else { return }
         let unload = Process()
         unload.launchPath = "/bin/launchctl"
@@ -95,9 +95,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if service.status == .notRegistered {
             do {
                 try service.register()
-                NSLog("Exe Fuelbar: registered as Login Item")
+                NSLog("Exe Watcher: registered as Login Item")
             } catch {
-                NSLog("Exe Fuelbar: Login Item registration failed: \(error)")
+                NSLog("Exe Watcher: Login Item registration failed: \(error)")
             }
         }
     }
@@ -109,7 +109,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
-    /// Loads the currency code persisted by `exe-fuelbar currency` so a relaunch picks up where
+    /// Loads the currency code persisted by `exe-watcher currency` so a relaunch picks up where
     /// the user left off. Rate is resolved from the on-disk FX cache if present, otherwise
     /// fetched live in the background.
     private func restorePersistedCurrency() {
@@ -186,7 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     // MARK: - Status Item
 
     private var isCompact: Bool {
-        UserDefaults.standard.bool(forKey: "ExeFuelbarMenubarCompact")
+        UserDefaults.standard.bool(forKey: "ExeWatcherMenubarCompact")
     }
 
     private func setupStatusItem() {
@@ -288,7 +288,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let fontNames = ["Epilogue-Bold"]
         for name in fontNames {
             guard let url = Bundle.module.url(forResource: name, withExtension: "ttf") else {
-                NSLog("Exe Fuelbar: font \(name).ttf not found in bundle")
+                NSLog("Exe Watcher: font \(name).ttf not found in bundle")
                 continue
             }
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)

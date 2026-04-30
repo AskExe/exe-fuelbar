@@ -15,7 +15,7 @@ function makeProject(project: string, projectPath = project): ProjectSummary {
 
 describe('filterProjectsByName', () => {
   const projects = [
-    makeProject('exe-fuelbar', '/Users/alice/exe-fuelbar'),
+    makeProject('exe-watcher', '/Users/alice/exe-watcher'),
     makeProject('Exe AI', '/Users/alice/projects/Exe AI'),
     makeProject('dashboard', '/Users/alice/Exe AI/dashboard'),
     makeProject('sandbox', '/tmp/sandbox'),
@@ -28,8 +28,8 @@ describe('filterProjectsByName', () => {
   })
 
   it('include matches project name (case-insensitive substring)', () => {
-    const result = filterProjectsByName(projects, ['exe-fuelbar'])
-    expect(result.map(p => p.project)).toEqual(['exe-fuelbar'])
+    const result = filterProjectsByName(projects, ['exe-watcher'])
+    expect(result.map(p => p.project)).toEqual(['exe-watcher'])
   })
 
   it('include is case-insensitive', () => {
@@ -43,12 +43,12 @@ describe('filterProjectsByName', () => {
   })
 
   it('include uses OR semantics across patterns', () => {
-    const result = filterProjectsByName(projects, ['exe-fuelbar', 'sandbox'])
-    expect(result.map(p => p.project).sort()).toEqual(['exe-fuelbar', 'sandbox'])
+    const result = filterProjectsByName(projects, ['exe-watcher', 'sandbox'])
+    expect(result.map(p => p.project).sort()).toEqual(['exe-watcher', 'sandbox'])
   })
 
   it('exclude removes matching projects (AND-negation across patterns)', () => {
-    const result = filterProjectsByName(projects, undefined, ['exe-fuelbar', 'sandbox'])
+    const result = filterProjectsByName(projects, undefined, ['exe-watcher', 'sandbox'])
     expect(result.map(p => p.project).sort()).toEqual(['Exe AI', 'dashboard'])
   })
 

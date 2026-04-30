@@ -234,7 +234,7 @@ function buildReadme(periods: PeriodExport[]): string {
   const { code } = getCurrency()
   const generated = new Date().toISOString()
   const lines = [
-    'Exe Fuelbar Usage Export',
+    'Exe Watcher Usage Export',
     '====================',
     '',
     `Generated: ${generated}`,
@@ -262,15 +262,15 @@ function buildReadme(periods: PeriodExport[]): string {
 }
 
 /// Sentinel file dropped into every folder we create so we can safely overwrite an older
-/// exe-fuelbar export without ever deleting a user's unrelated files by accident.
-const EXPORT_MARKER_FILE = '.exe-fuelbar-export'
+/// exe-watcher export without ever deleting a user's unrelated files by accident.
+const EXPORT_MARKER_FILE = '.exe-watcher-export'
 
-async function isExeFuelbarExportFolder(path: string): Promise<boolean> {
+async function isExeWatcherExportFolder(path: string): Promise<boolean> {
   const markerStat = await stat(join(path, EXPORT_MARKER_FILE)).catch(() => null)
   return markerStat?.isFile() ?? false
 }
 
-async function clearExeFuelbarExportFolder(path: string): Promise<void> {
+async function clearExeWatcherExportFolder(path: string): Promise<void> {
   const entries = await readdir(path)
   for (const entry of entries) {
     await rm(join(path, entry), { recursive: true, force: true })
@@ -279,7 +279,7 @@ async function clearExeFuelbarExportFolder(path: string): Promise<void> {
 
 /// Writes a folder of one-table-per-file CSVs. The outputPath is treated as a directory. If it
 /// ends in `.csv` the extension is stripped to form the folder name. Refuses to delete a
-/// pre-existing file or a non-exe-fuelbar folder, so a typo like `-o ~/.ssh/id_ed25519` can't
+/// pre-existing file or a non-exe-watcher folder, so a typo like `-o ~/.ssh/id_ed25519` can't
 /// wipe a sensitive file (prior versions did `rm(path, { force: true })` unconditionally).
 export async function exportCsv(periods: PeriodExport[], outputPath: string): Promise<string> {
   const thirtyDays = periods.find(p => p.label === '30 Days')
@@ -295,13 +295,13 @@ export async function exportCsv(periods: PeriodExport[], outputPath: string): Pr
     throw new Error(`Refusing to overwrite existing file at ${folder}. Pass a directory path instead.`)
   }
   if (existingStat?.isDirectory()) {
-    if (!(await isExeFuelbarExportFolder(folder))) {
+    if (!(await isExeWatcherExportFolder(folder))) {
       throw new Error(
         `Refusing to reuse non-empty directory ${folder}: no ${EXPORT_MARKER_FILE} marker. ` +
         `Delete it manually or pick a different -o path.`
       )
     }
-    await clearExeFuelbarExportFolder(folder)
+    await clearExeWatcherExportFolder(folder)
   }
   await mkdir(folder, { recursive: true })
   await writeFile(join(folder, EXPORT_MARKER_FILE), '', 'utf-8')
@@ -329,7 +329,7 @@ export async function exportJson(periods: PeriodExport[], outputPath: string): P
   const { code, rate, symbol } = getCurrency()
 
   const data = {
-    schema: 'exe-fuelbar.export.v2',
+    schema: 'exe-watcher.export.v2',
     generated: new Date().toISOString(),
     currency: { code, rate, symbol },
     summary: buildSummaryRows(periods),

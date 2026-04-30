@@ -1,6 +1,6 @@
 import Foundation
 
-/// Shape of `exe-fuelbar status --format menubar-json --period <period>`.
+/// Shape of `exe-watcher status --format menubar-json --period <period>`.
 /// `current` is scoped to the requested period; the whole payload reflects that slice.
 struct MenubarPayload: Codable, Sendable {
     let generated: String

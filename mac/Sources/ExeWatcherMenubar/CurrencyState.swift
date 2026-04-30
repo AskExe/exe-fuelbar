@@ -78,7 +78,7 @@ actor FXRateCache {
     private var cacheFilePath: String {
         let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         return base
-            .appendingPathComponent("exe-fuelbar-mac", isDirectory: true)
+            .appendingPathComponent("exe-watcher-mac", isDirectory: true)
             .appendingPathComponent("fx-rates.json")
             .path
     }
@@ -138,7 +138,7 @@ actor FXRateCache {
             let decoded = try JSONDecoder().decode(Response.self, from: data)
             guard let fresh = decoded.rates[code],
                   fresh.isFinite, fresh >= minValidFXRate, fresh <= maxValidFXRate else {
-                NSLog("Exe Fuelbar: discarding out-of-band FX rate for \(code)")
+                NSLog("Exe Watcher: discarding out-of-band FX rate for \(code)")
                 return entries[code]?.rate
             }
             entries[code] = Entry(rate: fresh, savedAt: Date().timeIntervalSince1970)
@@ -150,12 +150,12 @@ actor FXRateCache {
     }
 }
 
-/// Reads and writes the CLI's persisted currency config (~/.config/exe-fuelbar/config.json).
-/// Uses an on-disk flock so a concurrent `exe-fuelbar currency ...` invocation from a terminal
+/// Reads and writes the CLI's persisted currency config (~/.config/exe-watcher/config.json).
+/// Uses an on-disk flock so a concurrent `exe-watcher currency ...` invocation from a terminal
 /// can't race the menubar and silently drop each other's writes (TOCTOU on config.json).
 enum CLICurrencyConfig {
     private static var configDir: String {
-        (NSHomeDirectory() as NSString).appendingPathComponent(".config/exe-fuelbar")
+        (NSHomeDirectory() as NSString).appendingPathComponent(".config/exe-watcher")
     }
     private static var configPath: String {
         (configDir as NSString).appendingPathComponent("config.json")
@@ -203,7 +203,7 @@ enum CLICurrencyConfig {
                 try SafeFile.write(data, to: configPath, mode: 0o600)
             }
         } catch {
-            NSLog("Exe Fuelbar: failed to persist currency config: \(error)")
+            NSLog("Exe Watcher: failed to persist currency config: \(error)")
         }
     }
 }

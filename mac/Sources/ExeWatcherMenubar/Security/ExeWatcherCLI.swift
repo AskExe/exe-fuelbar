@@ -1,30 +1,30 @@
 import Foundation
 
-/// Single entry point for spawning the `exe-fuelbar` CLI. All callers route through here so the
+/// Single entry point for spawning the `exe-watcher` CLI. All callers route through here so the
 /// binary argv is validated once and no code path ever passes user-influenced strings through
 /// a shell (`/bin/zsh -c`, `open --args`, AppleScript). This closes the shell-injection attack
 /// surface end-to-end.
-enum ExeFuelbarCLI {
+enum ExeWatcherCLI {
     /// Matches a plain file path / program name: alphanumerics, dot, underscore, slash, hyphen,
     /// space. Deliberately excludes shell metacharacters (`$`, `;`, `&`, `|`, quotes, backticks,
-    /// newlines) so a malicious `EXE_FUELBAR_BIN="exe-fuelbar; rm -rf ~"` can't slip through.
+    /// newlines) so a malicious `EXE_WATCHER_BIN="exe-watcher; rm -rf ~"` can't slip through.
     private static let safeArgPattern = try! NSRegularExpression(pattern: "^[A-Za-z0-9 ._/\\-]+$")
 
     /// PATH additions for GUI-launched apps, which otherwise get a minimal PATH that misses
     /// Homebrew and npm global installs.
     private static let additionalPathEntries = ["/opt/homebrew/bin", "/usr/local/bin"]
 
-    /// Returns the argv that launches the CLI. Dev override via `EXE_FUELBAR_BIN` is honoured only
+    /// Returns the argv that launches the CLI. Dev override via `EXE_WATCHER_BIN` is honoured only
     /// if every whitespace-delimited token passes `safeArgPattern`. Otherwise falls back to the
-    /// plain `exe-fuelbar` name (resolved via PATH).
+    /// plain `exe-watcher` name (resolved via PATH).
     static func baseArgv() -> [String] {
-        guard let raw = ProcessInfo.processInfo.environment["EXE_FUELBAR_BIN"], !raw.isEmpty else {
-            return ["exe-fuelbar"]
+        guard let raw = ProcessInfo.processInfo.environment["EXE_WATCHER_BIN"], !raw.isEmpty else {
+            return ["exe-watcher"]
         }
         let parts = raw.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
         guard parts.allSatisfy(isSafe) else {
-            NSLog("Exe Fuelbar: refusing unsafe EXE_FUELBAR_BIN; using default 'exe-fuelbar'")
-            return ["exe-fuelbar"]
+            NSLog("Exe Watcher: refusing unsafe EXE_WATCHER_BIN; using default 'exe-watcher'")
+            return ["exe-watcher"]
         }
         return parts
     }

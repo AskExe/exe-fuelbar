@@ -7,13 +7,13 @@ import * as fsUtils from '../src/fs-utils.js'
 vi.mock('os', async () => {
   const actual = await vi.importActual<typeof import('os')>('os')
   const fs = await vi.importActual<typeof import('fs')>('fs')
-  const fakeHome = fs.mkdtempSync(actual.tmpdir() + '/exe-fuelbar-home-')
+  const fakeHome = fs.mkdtempSync(actual.tmpdir() + '/exe-watcher-home-')
   fs.mkdirSync(fakeHome + '/.claude', { recursive: true })
-  process.env['EXE_FUELBAR_TEST_FAKE_HOME'] = fakeHome
+  process.env['EXE_WATCHER_TEST_FAKE_HOME'] = fakeHome
   return { ...actual, homedir: () => fakeHome }
 })
 
-const FAKE_HOME_FOR_MOCK = process.env['EXE_FUELBAR_TEST_FAKE_HOME']!
+const FAKE_HOME_FOR_MOCK = process.env['EXE_WATCHER_TEST_FAKE_HOME']!
 
 import {
   detectBloatedClaudeMd,
@@ -39,7 +39,7 @@ import {
 const FIXTURE_ROOTS: string[] = [FAKE_HOME_FOR_MOCK]
 
 function makeFixtureRoot(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'exe-fuelbar-test-'))
+  const dir = mkdtempSync(join(tmpdir(), 'exe-watcher-test-'))
   FIXTURE_ROOTS.push(dir)
   return dir
 }

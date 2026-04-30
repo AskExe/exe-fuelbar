@@ -8,10 +8,10 @@ import { Readable } from 'node:stream'
 
 /// Public GitHub repo that hosts signed macOS release builds. `/releases/latest` returns the
 /// newest tagged release; we filter its assets list for our zipped .app bundle.
-const RELEASE_API = 'https://api.github.com/repos/AskExe/exe-fuelbar/releases/latest'
-const APP_BUNDLE_NAME = 'ExeFuelbarMenubar.app'
-const ASSET_PATTERN = /^ExeFuelbarMenubar-.*\.zip$/
-const APP_PROCESS_NAME = 'ExeFuelbarMenubar'
+const RELEASE_API = 'https://api.github.com/repos/AskExe/exe-watcher/releases/latest'
+const APP_BUNDLE_NAME = 'ExeWatcherMenubar.app'
+const ASSET_PATTERN = /^ExeWatcherMenubar-.*\.zip$/
+const APP_PROCESS_NAME = 'ExeWatcherMenubar'
 const SUPPORTED_OS = 'darwin'
 const MIN_MACOS_MAJOR = 14
 
@@ -37,7 +37,7 @@ async function ensureSupportedPlatform(): Promise<void> {
   if (platform() !== SUPPORTED_OS) {
     throw new Error(`The menubar app is macOS only (detected: ${platform()}).`)
   }
-  const major = Number((process.env.EXE_FUELBAR_FORCE_MACOS_MAJOR ?? '')
+  const major = Number((process.env.EXE_WATCHER_FORCE_MACOS_MAJOR ?? '')
     || (await sysProductVersion()).split('.')[0])
   if (!Number.isFinite(major) || major < MIN_MACOS_MAJOR) {
     throw new Error(`macOS ${MIN_MACOS_MAJOR}+ required (detected ${major}).`)
@@ -61,7 +61,7 @@ async function fetchLatestReleaseAsset(): Promise<ReleaseAsset> {
   const response = await fetch(RELEASE_API, {
     headers: {
       // Identify the installer so GitHub's abuse heuristics treat us as a known client.
-      'User-Agent': 'exe-fuelbar-installer',
+      'User-Agent': 'exe-watcher-installer',
       Accept: 'application/vnd.github+json',
     },
   })
@@ -73,7 +73,7 @@ async function fetchLatestReleaseAsset(): Promise<ReleaseAsset> {
   if (!asset) {
     throw new Error(
       `No ${APP_BUNDLE_NAME} zip found in release ${body.tag_name}. ` +
-      `Check https://github.com/AskExe/exe-fuelbar/releases.`
+      `Check https://github.com/AskExe/exe-watcher/releases.`
     )
   }
   return asset
@@ -81,7 +81,7 @@ async function fetchLatestReleaseAsset(): Promise<ReleaseAsset> {
 
 async function downloadToFile(url: string, destPath: string): Promise<void> {
   const response = await fetch(url, {
-    headers: { 'User-Agent': 'exe-fuelbar-installer' },
+    headers: { 'User-Agent': 'exe-watcher-installer' },
     redirect: 'follow',
   })
   if (!response.ok || response.body === null) {
@@ -133,10 +133,10 @@ export async function installMenubarApp(options: { force?: boolean } = {}): Prom
     return { installedPath: targetPath, launched: true }
   }
 
-  console.log('Looking up the latest Exe Fuelbar Menubar release...')
+  console.log('Looking up the latest Exe Watcher Menubar release...')
   const asset = await fetchLatestReleaseAsset()
 
-  const stagingDir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-menubar-'))
+  const stagingDir = await mkdtemp(join(tmpdir(), 'exe-watcher-menubar-'))
   try {
     const archivePath = join(stagingDir, asset.name)
     console.log(`Downloading ${asset.name}...`)
@@ -175,7 +175,7 @@ export async function installMenubarApp(options: { force?: boolean } = {}): Prom
       }
     }
 
-    console.log('Launching Exe Fuelbar Menubar...')
+    console.log('Launching Exe Watcher Menubar...')
     await runCommand('/usr/bin/open', [targetPath])
     return { installedPath: targetPath, launched: true }
   } finally {

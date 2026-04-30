@@ -1,35 +1,35 @@
-# Fuelbar Menubar (macOS)
+# Watcher Menubar (macOS)
 
-Native Swift + SwiftUI menubar app. The Fuelbar menubar surface.
+Native Swift + SwiftUI menubar app. The Watcher menubar surface.
 
 ## Requirements
 
 - macOS 14+ (Sonoma)
 - Swift 6.0+ toolchain (bundled with Xcode 16 or standalone)
-- `exe-fuelbar` CLI installed globally (`npm install -g exe-fuelbar`) or available at a path you pass via `EXE_FUELBAR_BIN`
+- `exe-watcher` CLI installed globally (`npm install -g exe-watcher`) or available at a path you pass via `EXE_WATCHER_BIN`
 
 ## Install (end users)
 
 One command:
 
 ```bash
-npx exe-fuelbar menubar
+npx exe-watcher menubar
 ```
 
 That's it. The command downloads the latest `.app` from GitHub Releases, drops it into `~/Applications`, clears Gatekeeper quarantine, and launches it. Re-running it upgrades in place with `--force`, or just launches the existing copy otherwise.
 
-If you already have the CLI installed globally (`npm install -g exe-fuelbar`), `exe-fuelbar menubar` works the same way.
+If you already have the CLI installed globally (`npm install -g exe-watcher`), `exe-watcher menubar` works the same way.
 
 ### Build from source
 
 For contributors running a local build instead of the packaged release:
 
 ```bash
-npm install -g exe-fuelbar                       # CLI the app shells out to for data
-git clone https://github.com/AskExe/exe-fuelbar.git
-cd exe-fuelbar/mac
+npm install -g exe-watcher                       # CLI the app shells out to for data
+git clone https://github.com/AskExe/exe-watcher.git
+cd exe-watcher/mac
 swift build -c release
-.build/release/ExeFuelbarMenubar                # launch
+.build/release/ExeWatcherMenubar                # launch
 ```
 
 ## Build & run (dev against a local CLI checkout)
@@ -37,26 +37,26 @@ swift build -c release
 ```bash
 cd mac
 swift build
-# Point the app at your dev CLI build instead of the globally installed `exe-fuelbar`:
+# Point the app at your dev CLI build instead of the globally installed `exe-watcher`:
 npm --prefix .. run build
-EXE_FUELBAR_BIN="node $(pwd)/../dist/cli.js" swift run
+EXE_WATCHER_BIN="node $(pwd)/../dist/cli.js" swift run
 ```
 
 The app registers itself as a menubar accessory (`LSUIElement = true` at runtime). No Dock icon.
 
 ## Data source
 
-On launch and every 60 seconds thereafter, the app spawns `exe-fuelbar status --format menubar-json --no-optimize` directly (argv, no shell) via `ExeFuelbarCLI.makeProcess` and decodes the JSON into `MenubarPayload`. The manual refresh button in the footer invokes the same command without `--no-optimize`, which includes optimize findings but takes longer.
+On launch and every 60 seconds thereafter, the app spawns `exe-watcher status --format menubar-json --no-optimize` directly (argv, no shell) via `ExeWatcherCLI.makeProcess` and decodes the JSON into `MenubarPayload`. The manual refresh button in the footer invokes the same command without `--no-optimize`, which includes optimize findings but takes longer.
 
-Override the binary via the `EXE_FUELBAR_BIN` environment variable (default: `exe-fuelbar` on PATH). The value is validated against a strict allowlist (alphanumerics plus `._/-` space) before use, so a malicious env var can't inject shell commands.
+Override the binary via the `EXE_WATCHER_BIN` environment variable (default: `exe-watcher` on PATH). The value is validated against a strict allowlist (alphanumerics plus `._/-` space) before use, so a malicious env var can't inject shell commands.
 
 ## Project layout
 
 ```
 mac/
 ├── Package.swift                     SwiftPM manifest
-├── Sources/ExeFuelbarMenubar/
-│   ├── FuelbarApp.swift                 @main + MenuBarExtra scene
+├── Sources/ExeWatcherMenubar/
+│   ├── WatcherApp.swift                 @main + MenuBarExtra scene
 │   ├── AppStore.swift                @Observable store + enums
 │   ├── Data/MenubarPayload.swift     Codable payload types + placeholder
 │   ├── Theme/Theme.swift             Design tokens (Exe Foundry Bold palette)

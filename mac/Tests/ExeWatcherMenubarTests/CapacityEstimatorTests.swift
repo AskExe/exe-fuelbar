@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import ExeFuelbarMenubar
+@testable import ExeWatcherMenubar
 
 private let now = Date(timeIntervalSince1970: 1_734_000_000)
 

@@ -1,11 +1,11 @@
 {
-  "name": "exe-fuelbar",
+  "name": "exe-watcher",
   "version": "0.2.0",
-  "description": "The fuel gauge for your AI coding day — cost, tokens, agents, and projects in your menu bar",
+  "description": "The owl watching your AI coding spend — cost, tokens, agents, and projects in your terminal and menu bar",
   "type": "module",
   "main": "./dist/cli.js",
   "bin": {
-    "exe-fuelbar": "dist/cli.js"
+    "exe-watcher": "dist/cli.js"
   },
   "files": [
     "dist"
@@ -35,12 +35,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AskExe/exe-fuelbar.git"
+    "url": "git+https://github.com/AskExe/exe-watcher.git"
   },
   "bugs": {
-    "url": "https://github.com/AskExe/exe-fuelbar/issues"
+    "url": "https://github.com/AskExe/exe-watcher/issues"
   },
-  "homepage": "https://github.com/AskExe/exe-fuelbar#readme",
+  "homepage": "https://github.com/AskExe/exe-watcher#readme",
   "dependencies": {
     "chalk": "^5.4.1",
     "commander": "^13.1.0",

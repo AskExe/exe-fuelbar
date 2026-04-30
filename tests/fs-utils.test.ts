@@ -14,7 +14,7 @@ describe('readSessionFile', () => {
   const tmpDirs: string[] = []
 
   afterEach(async () => {
-    delete process.env.EXE_FUELBAR_VERBOSE
+    delete process.env.EXE_WATCHER_VERBOSE
     while (tmpDirs.length > 0) {
       const d = tmpDirs.pop()
       if (d) await rm(d, { recursive: true, force: true })
@@ -22,7 +22,7 @@ describe('readSessionFile', () => {
   })
 
   async function tmpPath(content: string | Buffer): Promise<string> {
-    const base = await mkdtemp(join(tmpdir(), 'exe-fuelbar-fs-'))
+    const base = await mkdtemp(join(tmpdir(), 'exe-watcher-fs-'))
     tmpDirs.push(base)
     const p = join(base, 'x.jsonl')
     await writeFile(p, content)
@@ -46,14 +46,14 @@ describe('readSessionFile', () => {
     expect(await readSessionFile(p)).toBeNull()
   })
 
-  it('emits stderr warning under EXE_FUELBAR_VERBOSE=1 for skipped file', async () => {
-    process.env.EXE_FUELBAR_VERBOSE = '1'
+  it('emits stderr warning under EXE_WATCHER_VERBOSE=1 for skipped file', async () => {
+    process.env.EXE_WATCHER_VERBOSE = '1'
     const p = await tmpPath(Buffer.alloc(MAX_SESSION_FILE_BYTES + 1, 'c'))
     const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     await readSessionFile(p)
     expect(spy).toHaveBeenCalled()
     const msg = (spy.mock.calls[0][0] as string)
-    expect(msg).toContain('exe-fuelbar')
+    expect(msg).toContain('exe-watcher')
     expect(msg).toContain('oversize')
     spy.mockRestore()
   })
@@ -74,7 +74,7 @@ describe('readSessionLines', () => {
   })
 
   async function tmpPath(content: string): Promise<string> {
-    const base = await mkdtemp(join(tmpdir(), 'exe-fuelbar-lines-'))
+    const base = await mkdtemp(join(tmpdir(), 'exe-watcher-lines-'))
     tmpDirs.push(base)
     const p = join(base, 'session.jsonl')
     await writeFile(p, content)

@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="800" height="200">
   <!--
-    Fuelbar Header Banner
+    Watcher Header Banner
     800x200 for README display
-    Brand: Pink FUELBAR on black, EXE gold logo bottom-left
+    Brand: Pink WATCHER on black, EXE gold logo bottom-left
   -->
 
   <!-- Background -->
   <rect width="800" height="200" rx="16" fill="#000000"/>
 
-  <!-- FUELBAR wordmark — centered, pink -->
-  <text x="400" y="110" text-anchor="middle" font-family="Futura, Avenir Next, Helvetica Neue, sans-serif" font-weight="bold" font-size="64" letter-spacing="10" fill="#D4619C">FUELBAR</text>
+  <!-- WATCHER wordmark — centered, pink -->
+  <text x="400" y="110" text-anchor="middle" font-family="Futura, Avenir Next, Helvetica Neue, sans-serif" font-weight="bold" font-size="64" letter-spacing="10" fill="#D4619C">WATCHER</text>
 
   <!-- EXE gold logo — bottom left -->
   <text x="28" y="184" font-family="Futura, Avenir Next, Helvetica Neue, sans-serif" font-weight="bold" font-size="18" letter-spacing="4" fill="#F5D76E">EXE</text>

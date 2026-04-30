@@ -376,7 +376,7 @@ describe('Parse -> Export JSON pipeline', () => {
     const data = JSON.parse(raw)
 
     // Top-level schema
-    expect(data.schema).toBe('exe-fuelbar.export.v2')
+    expect(data.schema).toBe('exe-watcher.export.v2')
     expect(data.generated).toMatch(/^\d{4}-\d{2}-\d{2}T/)
     expect(data.currency).toHaveProperty('code')
     expect(data.currency).toHaveProperty('rate')
@@ -421,7 +421,7 @@ describe('Parse -> Export JSON pipeline', () => {
 
     const raw = await readFile(filePath, 'utf-8')
     const data = JSON.parse(raw)
-    expect(data.schema).toBe('exe-fuelbar.export.v2')
+    expect(data.schema).toBe('exe-watcher.export.v2')
   })
 })
 

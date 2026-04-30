@@ -23,7 +23,7 @@ function run(args: string): { stdout: string; stderr: string; status: number } {
   }
 }
 
-describe('exe-fuelbar --version', () => {
+describe('exe-watcher --version', () => {
   it('outputs a semver version number and exits 0', () => {
     const { stdout, status } = run('--version')
     expect(status).toBe(0)
@@ -31,12 +31,12 @@ describe('exe-fuelbar --version', () => {
   })
 })
 
-describe('exe-fuelbar --help', () => {
+describe('exe-watcher --help', () => {
   it('outputs usage info with command list and exits 0', () => {
     const { stdout, status } = run('--help')
     expect(status).toBe(0)
     expect(stdout).toContain('Usage:')
-    expect(stdout).toContain('exe-fuelbar')
+    expect(stdout).toContain('exe-watcher')
     expect(stdout).toContain('Commands:')
     expect(stdout).toContain('report')
     expect(stdout).toContain('status')
@@ -45,7 +45,7 @@ describe('exe-fuelbar --help', () => {
   })
 })
 
-describe('exe-fuelbar status', () => {
+describe('exe-watcher status', () => {
   it('outputs Today/Month line with cost and exits 0', { timeout: 15_000 }, () => {
     const { stdout, status } = run('status')
     expect(status).toBe(0)
@@ -76,7 +76,7 @@ describe('exe-fuelbar status', () => {
   })
 })
 
-describe('exe-fuelbar report', () => {
+describe('exe-watcher report', () => {
   it('outputs valid JSON with generated key when --format json -p today', { timeout: 15_000 }, () => {
     const { stdout, status } = run('report --format json -p today')
     expect(status).toBe(0)
@@ -86,14 +86,14 @@ describe('exe-fuelbar report', () => {
   })
 })
 
-describe('exe-fuelbar optimize', () => {
+describe('exe-watcher optimize', () => {
   it('runs without error and exits 0', { timeout: 15_000 }, () => {
     const { status } = run('optimize')
     expect(status).toBe(0)
   })
 })
 
-describe('exe-fuelbar currency', () => {
+describe('exe-watcher currency', () => {
   it('shows current currency and exits 0', () => {
     const { stdout, status } = run('currency')
     expect(status).toBe(0)
@@ -101,7 +101,7 @@ describe('exe-fuelbar currency', () => {
   })
 })
 
-describe('exe-fuelbar compare', () => {
+describe('exe-watcher compare', () => {
   it('shows compare help text when --help and exits 0', () => {
     const { stdout, status } = run('compare --help')
     expect(status).toBe(0)
@@ -110,7 +110,7 @@ describe('exe-fuelbar compare', () => {
   })
 })
 
-describe('exe-fuelbar unknown command', () => {
+describe('exe-watcher unknown command', () => {
   it('exits non-zero for a nonexistent subcommand', () => {
     const { status } = run('nonexistent-command')
     expect(status).not.toBe(0)

@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-private let releasesAPI = "https://api.github.com/repos/AskExe/exe-fuelbar/releases/latest"
+private let releasesAPI = "https://api.github.com/repos/AskExe/exe-watcher/releases/latest"
 private let checkIntervalSeconds: TimeInterval = 2 * 24 * 60 * 60
 private let lastCheckKey = "UpdateChecker.lastCheckDate"
 private let cachedVersionKey = "UpdateChecker.latestVersion"
@@ -39,25 +39,25 @@ final class UpdateChecker {
     func check() async {
         guard let url = URL(string: releasesAPI) else { return }
         var request = URLRequest(url: url)
-        request.setValue("exe-fuelbar-menubar-updater", forHTTPHeaderField: "User-Agent")
+        request.setValue("exe-watcher-menubar-updater", forHTTPHeaderField: "User-Agent")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
 
         do {
             let (data, _) = try await URLSession.shared.data(for: request)
             let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
             guard let asset = release.assets.first(where: {
-                $0.name.hasPrefix("ExeFuelbarMenubar-") && $0.name.hasSuffix(".zip")
+                $0.name.hasPrefix("ExeWatcherMenubar-") && $0.name.hasSuffix(".zip")
             }) else { return }
 
             let version = asset.name
-                .replacingOccurrences(of: "ExeFuelbarMenubar-", with: "")
+                .replacingOccurrences(of: "ExeWatcherMenubar-", with: "")
                 .replacingOccurrences(of: ".zip", with: "")
 
             latestVersion = version
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastCheckKey)
             UserDefaults.standard.set(version, forKey: cachedVersionKey)
         } catch {
-            NSLog("Exe Fuelbar: update check failed: \(error)")
+            NSLog("Exe Watcher: update check failed: \(error)")
         }
     }
 
@@ -65,7 +65,7 @@ final class UpdateChecker {
         isUpdating = true
         updateError = nil
 
-        let process = ExeFuelbarCLI.makeProcess(subcommand: ["menubar", "--force"])
+        let process = ExeWatcherCLI.makeProcess(subcommand: ["menubar", "--force"])
         let errPipe = Pipe()
         process.standardOutput = FileHandle.nullDevice
         process.standardError = errPipe
@@ -78,7 +78,7 @@ final class UpdateChecker {
                 if proc.terminationStatus != 0 {
                     self.isUpdating = false
                     self.updateError = stderr.isEmpty ? "Update failed (exit \(proc.terminationStatus))" : stderr
-                    NSLog("Exe Fuelbar: update failed (exit \(proc.terminationStatus)): \(stderr)")
+                    NSLog("Exe Watcher: update failed (exit \(proc.terminationStatus)): \(stderr)")
                 }
             }
         }
@@ -88,7 +88,7 @@ final class UpdateChecker {
         } catch {
             isUpdating = false
             updateError = error.localizedDescription
-            NSLog("Exe Fuelbar: update spawn failed: \(error)")
+            NSLog("Exe Watcher: update spawn failed: \(error)")
         }
     }
 }

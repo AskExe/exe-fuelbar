@@ -16,7 +16,7 @@ afterEach(async () => {
 })
 
 async function makeTmpDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'exe-fuelbar-sqlite-'))
+  const dir = await mkdtemp(join(tmpdir(), 'exe-watcher-sqlite-'))
   tmpDirs.push(dir)
   return dir
 }

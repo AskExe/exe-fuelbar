@@ -2,17 +2,17 @@
 import PackageDescription
 
 let package = Package(
-    name: "ExeFuelbarMenubar",
+    name: "ExeWatcherMenubar",
     platforms: [
         .macOS(.v14)
     ],
     products: [
-        .executable(name: "ExeFuelbarMenubar", targets: ["ExeFuelbarMenubar"])
+        .executable(name: "ExeWatcherMenubar", targets: ["ExeWatcherMenubar"])
     ],
     targets: [
         .executableTarget(
-            name: "ExeFuelbarMenubar",
-            path: "Sources/ExeFuelbarMenubar",
+            name: "ExeWatcherMenubar",
+            path: "Sources/ExeWatcherMenubar",
             resources: [
                 .copy("Resources/owl.pdf"),
                 .copy("Resources/owl-menubar.pdf"),
@@ -24,9 +24,9 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "ExeFuelbarMenubarTests",
-            dependencies: ["ExeFuelbarMenubar"],
-            path: "Tests/ExeFuelbarMenubarTests"
+            name: "ExeWatcherMenubarTests",
+            dependencies: ["ExeWatcherMenubar"],
+            path: "Tests/ExeWatcherMenubarTests"
         )
     ]
 )

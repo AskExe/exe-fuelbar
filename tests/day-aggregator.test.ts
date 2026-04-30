@@ -261,7 +261,7 @@ describe('buildPeriodDataFromDays', () => {
     // Regression for the bug that shipped in 0.8.2-0.8.4: when a user message
     // sat on one side of midnight and the assistant response landed on the other,
     // day-aggregator.ts bucketed by assistant time but renderStatusBar bucketed
-    // by user time, so the menubar and `exe-fuelbar status` disagreed on Today.
+    // by user time, so the menubar and `exe-watcher status` disagreed on Today.
     // The invariant for both surfaces: a turn is counted on the day its first
     // assistant call actually ran.
     const userTs = '2026-04-20T23:58:00Z'
