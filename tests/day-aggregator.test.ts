@@ -212,7 +212,7 @@ describe('buildPeriodDataFromDays', () => {
         'Opus 4.7': { calls: 8, cost: cost * 0.8, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
         'Haiku 4.5': { calls: 2, cost: cost * 0.2, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
       },
-      categories: { 'coding': { turns: 2, cost: cost * 0.5, editTurns: 2, oneShotTurns: 1 } },
+      categories: { 'building': { turns: 2, cost: cost * 0.5, editTurns: 2, oneShotTurns: 1 } },
       providers: { 'claude': { calls: 10, cost } },
     }
   }
@@ -241,7 +241,7 @@ describe('buildPeriodDataFromDays', () => {
   it('merges per-category totals and keeps editTurns + oneShotTurns per category', () => {
     const days = [makeDay('2026-04-09', 10), makeDay('2026-04-10', 20)]
     const pd = buildPeriodDataFromDays(days, 'Today')
-    const coding = pd.categories.find(c => c.name === 'Coding')!
+    const coding = pd.categories.find(c => c.name === 'Building')!
     expect(coding.turns).toBe(4)
     expect(coding.editTurns).toBe(4)
     expect(coding.oneShotTurns).toBe(2)

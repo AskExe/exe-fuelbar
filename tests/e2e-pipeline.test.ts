@@ -20,8 +20,7 @@ import type { ProjectSummary, ClassifiedTurn, ParsedApiCall, SessionSummary, Tas
 // ---------------------------------------------------------------------------
 
 const ALL_CATEGORIES: TaskCategory[] = [
-  'coding', 'debugging', 'feature', 'refactoring', 'testing', 'exploration',
-  'planning', 'delegation', 'git', 'build/deploy', 'conversation', 'brainstorming', 'general',
+  'building', 'debugging', 'testing', 'research', 'devops', 'planning',
 ]
 
 function emptyCategoryBreakdown(): SessionSummary['categoryBreakdown'] {
@@ -73,7 +72,7 @@ function makeTurn(
     userMessage: 'fix the tests',
     timestamp,
     sessionId: 'sess-fixture',
-    category: opts.category ?? 'coding',
+    category: opts.category ?? 'building',
     retries: opts.retries ?? 0,
     hasEdits: opts.hasEdits ?? true,
     assistantCalls: [makeCall(timestamp, costUSD, model, provider)],
@@ -179,11 +178,11 @@ afterEach(async () => {
 describe('Parse -> Aggregate -> PeriodData pipeline', () => {
   it('aggregates project sessions into daily entries and builds correct PeriodData', () => {
     const turns1 = [
-      makeTurn('2026-04-20T10:00:00Z', 5.0, { category: 'coding', hasEdits: true }),
+      makeTurn('2026-04-20T10:00:00Z', 5.0, { category: 'building', hasEdits: true }),
       makeTurn('2026-04-20T14:00:00Z', 3.0, { category: 'debugging', hasEdits: true, retries: 1 }),
     ]
     const turns2 = [
-      makeTurn('2026-04-21T09:00:00Z', 7.0, { category: 'feature', model: 'gpt-5', provider: 'codex' }),
+      makeTurn('2026-04-21T09:00:00Z', 7.0, { category: 'building', model: 'gpt-5', provider: 'codex' }),
     ]
 
     const sess1 = makeSession('sess-1', '/proj/alpha', turns1)
@@ -232,15 +231,15 @@ describe('Parse -> Aggregate -> PeriodData pipeline', () => {
     expect(periodData.models[1]!.cost).toBe(7)
 
     // Categories present
-    const codingCat = periodData.categories.find(c => c.name === 'Coding')
-    expect(codingCat).toBeDefined()
-    expect(codingCat!.turns).toBe(1)
-    expect(codingCat!.cost).toBe(5)
+    const buildingCat = periodData.categories.find(c => c.name === 'Building')
+    expect(buildingCat).toBeDefined()
+    expect(buildingCat!.turns).toBe(2)
+    expect(buildingCat!.cost).toBe(12)
 
-    const featureCat = periodData.categories.find(c => c.name === 'Feature Dev')
-    expect(featureCat).toBeDefined()
-    expect(featureCat!.turns).toBe(1)
-    expect(featureCat!.cost).toBe(7)
+    const debugCat = periodData.categories.find(c => c.name === 'Debugging')
+    expect(debugCat).toBeDefined()
+    expect(debugCat!.turns).toBe(1)
+    expect(debugCat!.cost).toBe(3)
   })
 
   it('handles empty projects gracefully', () => {
@@ -269,9 +268,9 @@ describe('Parse -> Aggregate -> PeriodData pipeline', () => {
     expect(days[0]!.oneShotTurns).toBe(1)
 
     const periodData = buildPeriodDataFromDays(days, 'Today')
-    const codingCat = periodData.categories.find(c => c.name === 'Coding')!
-    expect(codingCat.editTurns).toBe(2)
-    expect(codingCat.oneShotTurns).toBe(1)
+    const buildingCat = periodData.categories.find(c => c.name === 'Building')!
+    expect(buildingCat.editTurns).toBe(2)
+    expect(buildingCat.oneShotTurns).toBe(1)
   })
 })
 
@@ -359,7 +358,7 @@ describe('Parse -> Export CSV pipeline', () => {
 describe('Parse -> Export JSON pipeline', () => {
   it('exports valid JSON matching expected schema', async () => {
     const turns = [
-      makeTurn('2026-04-20T10:00:00Z', 4.00, { category: 'coding' }),
+      makeTurn('2026-04-20T10:00:00Z', 4.00, { category: 'building' }),
       makeTurn('2026-04-21T09:00:00Z', 6.00, { category: 'debugging' }),
     ]
     const sess = makeSession('sess-json', '/proj/json-test', turns)
@@ -432,9 +431,9 @@ describe('Parse -> Export JSON pipeline', () => {
 describe('Parse -> Menubar JSON pipeline', () => {
   it('builds correct menubar payload structure from PeriodData', () => {
     const turns = [
-      makeTurn('2026-04-20T10:00:00Z', 5.0, { category: 'coding', hasEdits: true }),
+      makeTurn('2026-04-20T10:00:00Z', 5.0, { category: 'building', hasEdits: true }),
       makeTurn('2026-04-20T11:00:00Z', 3.0, { category: 'debugging', hasEdits: true, retries: 1 }),
-      makeTurn('2026-04-20T12:00:00Z', 2.0, { category: 'conversation', hasEdits: false }),
+      makeTurn('2026-04-20T12:00:00Z', 2.0, { category: 'research', hasEdits: false }),
     ]
     const sess = makeSession('sess-mb', '/proj/mb', turns)
     const project = makeProject('/proj/mb', [sess])
@@ -471,9 +470,9 @@ describe('Parse -> Menubar JSON pipeline', () => {
 
     // Activities
     expect(payload.current.topActivities.length).toBeGreaterThanOrEqual(2)
-    const codingActivity = payload.current.topActivities.find(a => a.name === 'Coding')
-    expect(codingActivity).toBeDefined()
-    expect(codingActivity!.cost).toBe(5)
+    const buildingActivity = payload.current.topActivities.find(a => a.name === 'Building')
+    expect(buildingActivity).toBeDefined()
+    expect(buildingActivity!.cost).toBe(5)
 
     // Models
     expect(payload.current.topModels.length).toBe(1)
