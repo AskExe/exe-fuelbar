@@ -136,12 +136,43 @@ function HBar({ value, max, width }: { value: number; max: number; width: number
 }
 
 const PANEL_CHROME = 4
+const PINK = '#D4619C'
 
 function Panel({ title, color, children, width }: { title: string; color: string; children: React.ReactNode; width: number }) {
   return (
     <Box flexDirection="column" borderStyle="round" borderColor={color} paddingX={1} width={width} overflowX="hidden">
       <Text bold color={color}>{title}</Text>
       {children}
+    </Box>
+  )
+}
+
+const OWL_ART = [
+  '        ▓▓▓▓▓▓▓▓▓        ',
+  '      ▓▓▒▒▒▒▒▒▒▒▒▓▓      ',
+  '    ▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓    ',
+  '   ▓▒▒▒▓▓▓▒▒▒▓▓▓▒▒▒▓▓    ',
+  '   ▓▒▒▓███▓▒▓███▓▒▒▒▓     ',
+  '   ▓▒▒▓█▀█▓▒▓█▀█▓▒▒▒▓     ',
+  '   ▓▒▒▒▓▓▓▒▒▒▓▓▓▒▒▒▓▓     ',
+  '    ▓▒▒▒▒▒▓▓▓▒▒▒▒▒▓▓      ',
+  '     ▓▓▒▒▒▒▒▒▒▒▒▓▓        ',
+  '       ▓▓▓▓▓▓▓▓▓▓          ',
+]
+
+function LoadingScreen({ width, dots }: { width: number; dots: number }) {
+  const dotStr = '.'.repeat(dots)
+  return (
+    <Box flexDirection="column" width={width} alignItems="center" justifyContent="center" paddingY={2}>
+      <Box flexDirection="column" alignItems="center">
+        {OWL_ART.map((line, i) => (
+          <Text key={i} color={i < 5 ? GOLD : PINK}>{line}</Text>
+        ))}
+      </Box>
+      <Text> </Text>
+      <Text bold color={PINK}>FUELBAR</Text>
+      <Text> </Text>
+      <Text dimColor>Scanning sessions{dotStr.padEnd(3)}</Text>
     </Box>
   )
 }
@@ -613,25 +644,25 @@ function DashboardContent({ projects, period, columns, activeProvider, budgets, 
   )
 }
 
-function InteractiveDashboard({ initialProjects, initialPeriod, initialProvider, initialPlanUsage, refreshSeconds, projectFilter, excludeFilter }: {
-  initialProjects: ProjectSummary[]
+function InteractiveDashboard({ initialPeriod, initialProvider, refreshSeconds, projectFilter, excludeFilter }: {
   initialPeriod: Period
   initialProvider: string
-  initialPlanUsage?: PlanUsage
   refreshSeconds?: number
   projectFilter?: string[]
   excludeFilter?: string[]
 }) {
   const { exit } = useApp()
   const [period, setPeriod] = useState<Period>(initialPeriod)
-  const [projects, setProjects] = useState<ProjectSummary[]>(initialProjects)
+  const [projects, setProjects] = useState<ProjectSummary[]>([])
+  const [initialLoading, setInitialLoading] = useState(true)
   const [loading, setLoading] = useState(false)
   const [activeProvider, setActiveProvider] = useState(initialProvider)
   const [detectedProviders, setDetectedProviders] = useState<string[]>([])
   const [view, setView] = useState<View>('dashboard')
   const [optimizeResult, setOptimizeResult] = useState<OptimizeResult | null>(null)
   const [projectBudgets, setProjectBudgets] = useState<Map<string, ContextBudget>>(new Map())
-  const [planUsage, setPlanUsage] = useState<PlanUsage | undefined>(initialPlanUsage)
+  const [planUsage, setPlanUsage] = useState<PlanUsage | undefined>(undefined)
+  const [loadingDots, setLoadingDots] = useState(1)
   const { columns } = useWindowSize()
   const { dashWidth } = getLayout(columns)
   const multipleProviders = detectedProviders.length > 1
@@ -643,6 +674,33 @@ function InteractiveDashboard({ initialProjects, initialPeriod, initialProvider,
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reloadGenerationRef = useRef(0)
   const findingCount = optimizeResult?.findings.length ?? 0
+
+  // Animate loading dots
+  useEffect(() => {
+    if (!initialLoading) return
+    const id = setInterval(() => setLoadingDots(d => (d % 3) + 1), 400)
+    return () => clearInterval(id)
+  }, [initialLoading])
+
+  // Initial data load — runs once on mount
+  useEffect(() => {
+    let cancelled = false
+    async function boot() {
+      await loadPricing()
+      if (cancelled) return
+      const range = getDateRange(initialPeriod)
+      const data = await parseAllSessions(range, initialProvider)
+      if (cancelled) return
+      const filtered = filterProjectsByName(data, projectFilter, excludeFilter)
+      setProjects(filtered)
+      const usage = await getPlanUsageOrNull()
+      if (cancelled) return
+      setPlanUsage(usage ?? undefined)
+      setInitialLoading(false)
+    }
+    boot()
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -750,6 +808,10 @@ function InteractiveDashboard({ initialProjects, initialPeriod, initialProvider,
     else if (input === '5') switchPeriodImmediate('all')
   })
 
+  if (initialLoading) {
+    return <LoadingScreen width={dashWidth} dots={loadingDots} />
+  }
+
   if (loading) {
     return (
       <Box flexDirection="column" width={dashWidth}>
@@ -762,7 +824,7 @@ function InteractiveDashboard({ initialProjects, initialPeriod, initialProvider,
                 <Text dimColor>Loading {PERIOD_LABELS[period]} model data...</Text>
               </Box>
             </Box>
-          : <Panel title="Exe Fuelbar" color={ORANGE} width={dashWidth}><Text dimColor>Loading {PERIOD_LABELS[period]}...</Text></Panel>}
+          : <Panel title="Fuelbar" color={ORANGE} width={dashWidth}><Text dimColor>Loading {PERIOD_LABELS[period]}...</Text></Panel>}
         {view !== 'compare' && <StatusBar width={dashWidth} showProvider={multipleProviders} view={view} findingCount={0} optimizeAvailable={false} compareAvailable={false} />}
       </Box>
     )
@@ -793,17 +855,20 @@ function StaticDashboard({ projects, period, activeProvider, planUsage }: { proj
 }
 
 export async function renderDashboard(period: Period = 'week', provider: string = 'all', refreshSeconds?: number, projectFilter?: string[], excludeFilter?: string[], customRange?: DateRange | null): Promise<void> {
-  await loadPricing()
-  const range = customRange ?? getDateRange(period)
-  const filteredProjects = filterProjectsByName(await parseAllSessions(range, provider), projectFilter, excludeFilter)
-  const planUsage = await getPlanUsageOrNull()
   const isTTY = process.stdin.isTTY && process.stdout.isTTY
   if (isTTY) {
+    // Render immediately — the component loads data asynchronously and shows
+    // an owl loading screen while scanning sessions.
     const { waitUntilExit } = render(
-      <InteractiveDashboard initialProjects={filteredProjects} initialPeriod={period} initialProvider={provider} initialPlanUsage={planUsage ?? undefined} refreshSeconds={refreshSeconds} projectFilter={projectFilter} excludeFilter={excludeFilter} />
+      <InteractiveDashboard initialPeriod={period} initialProvider={provider} refreshSeconds={refreshSeconds} projectFilter={projectFilter} excludeFilter={excludeFilter} />
     )
     await waitUntilExit()
   } else {
+    // Non-TTY (piped) — must load synchronously before rendering once.
+    await loadPricing()
+    const range = customRange ?? getDateRange(period)
+    const filteredProjects = filterProjectsByName(await parseAllSessions(range, provider), projectFilter, excludeFilter)
+    const planUsage = await getPlanUsageOrNull()
     const { unmount } = render(<StaticDashboard projects={filteredProjects} period={period} activeProvider={provider} planUsage={planUsage ?? undefined} />, { patchConsole: false })
     unmount()
   }
