@@ -1,7 +1,9 @@
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import { readFile, mkdir, rename, unlink } from 'fs/promises'
+import { open } from 'fs/promises'
 import { join } from 'path'
-import { homedir } from 'os'
+import { randomBytes } from 'crypto'
 
+import { getCacheDir } from './cache-dir.js'
 import { readConfig } from './config.js'
 
 type CurrencyState = {
@@ -54,10 +56,6 @@ function getFractionDigits(code: string): number {
   }).resolvedOptions().maximumFractionDigits ?? 2
 }
 
-function getCacheDir(): string {
-  return join(homedir(), '.cache', 'exe-fuelbar')
-}
-
 function getRateCachePath(): string {
   return join(getCacheDir(), 'exchange-rate.json')
 }
@@ -89,7 +87,21 @@ async function loadCachedRate(code: string): Promise<number | null> {
 
 async function cacheRate(code: string, rate: number): Promise<void> {
   await mkdir(getCacheDir(), { recursive: true })
-  await writeFile(getRateCachePath(), JSON.stringify({ timestamp: Date.now(), code, rate }))
+  const finalPath = getRateCachePath()
+  const tmpPath = `${finalPath}.${randomBytes(8).toString('hex')}.tmp`
+  const handle = await open(tmpPath, 'w', 0o600)
+  try {
+    await handle.writeFile(JSON.stringify({ timestamp: Date.now(), code, rate }), { encoding: 'utf-8' })
+    await handle.sync()
+  } finally {
+    await handle.close()
+  }
+  try {
+    await rename(tmpPath, finalPath)
+  } catch (err) {
+    try { await unlink(tmpPath) } catch { /* ignore */ }
+    throw err
+  }
 }
 
 async function getExchangeRate(code: string): Promise<number> {

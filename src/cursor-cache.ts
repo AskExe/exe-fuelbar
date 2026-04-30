@@ -1,7 +1,9 @@
-import { readFile, writeFile, mkdir, stat } from 'fs/promises'
+import { readFile, mkdir, stat, rename } from 'fs/promises'
+import { open } from 'fs/promises'
 import { join } from 'path'
-import { homedir } from 'os'
+import { randomBytes } from 'crypto'
 
+import { getCacheDir } from './cache-dir.js'
 import type { ParsedProviderCall } from './providers/types.js'
 
 type ResultCache = {
@@ -11,10 +13,6 @@ type ResultCache = {
 }
 
 const CACHE_FILE = 'cursor-results.json'
-
-function getCacheDir(): string {
-  return join(homedir(), '.cache', 'exe-fuelbar')
-}
 
 function getCachePath(): string {
   return join(getCacheDir(), CACHE_FILE)
@@ -58,6 +56,15 @@ export async function writeCachedResults(dbPath: string, calls: ParsedProviderCa
       dbSizeBytes: fp.size,
       calls,
     }
-    await writeFile(getCachePath(), JSON.stringify(cache), 'utf-8')
+    const finalPath = getCachePath()
+    const tmpPath = `${finalPath}.${randomBytes(8).toString('hex')}.tmp`
+    const handle = await open(tmpPath, 'w', 0o600)
+    try {
+      await handle.writeFile(JSON.stringify(cache), { encoding: 'utf-8' })
+      await handle.sync()
+    } finally {
+      await handle.close()
+    }
+    await rename(tmpPath, finalPath)
   } catch {}
 }

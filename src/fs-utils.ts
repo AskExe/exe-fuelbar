@@ -1,5 +1,5 @@
 import { readFile, stat } from 'fs/promises'
-import { readFileSync, statSync, createReadStream } from 'fs'
+import { readFileSync, statSync, createReadStream, openSync, fstatSync, readSync, closeSync, constants } from 'fs'
 import { createInterface } from 'readline'
 
 // Hard cap well below V8's 512 MB string limit even with split('\n') doubling.
@@ -48,24 +48,39 @@ export async function readSessionFile(filePath: string): Promise<string | null> 
 }
 
 export function readSessionFileSync(filePath: string): string | null {
-  let size: number
+  // Use O_NOFOLLOW to avoid TOCTOU symlink swaps between stat and read.
+  // Falls back to plain readFileSync on platforms that lack O_NOFOLLOW.
+  const O_NOFOLLOW = (constants as Record<string, number>)['O_NOFOLLOW'] ?? 0
+  let fd: number
   try {
-    size = statSync(filePath).size
+    fd = openSync(filePath, constants.O_RDONLY | O_NOFOLLOW)
   } catch (err) {
-    warn(`stat failed for ${filePath}: ${(err as NodeJS.ErrnoException).code ?? 'unknown'}`)
-    return null
-  }
-
-  if (size > MAX_SESSION_FILE_BYTES) {
-    warn(`skipped oversize file ${filePath} (${size} bytes > cap ${MAX_SESSION_FILE_BYTES})`)
+    const code = (err as NodeJS.ErrnoException).code ?? 'unknown'
+    // ELOOP = tried to open a symlink with O_NOFOLLOW — skip it
+    if (code === 'ELOOP') { warn(`skipped symlink ${filePath}`); return null }
+    warn(`open failed for ${filePath}: ${code}`)
     return null
   }
 
   try {
-    return readFileSync(filePath, 'utf-8')
+    const size = fstatSync(fd).size
+    if (size > MAX_SESSION_FILE_BYTES) {
+      warn(`skipped oversize file ${filePath} (${size} bytes > cap ${MAX_SESSION_FILE_BYTES})`)
+      return null
+    }
+    const buf = Buffer.allocUnsafe(size)
+    let offset = 0
+    while (offset < size) {
+      const bytesRead = readSync(fd, buf, offset, size - offset, offset)
+      if (bytesRead === 0) break
+      offset += bytesRead
+    }
+    return buf.toString('utf-8', 0, offset)
   } catch (err) {
     warn(`read failed for ${filePath}: ${(err as NodeJS.ErrnoException).code ?? 'unknown'}`)
     return null
+  } finally {
+    closeSync(fd)
   }
 }
 

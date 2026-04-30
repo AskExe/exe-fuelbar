@@ -1,6 +1,8 @@
-import { readFile, writeFile, mkdir, rename } from 'fs/promises'
+import { readFile, mkdir, rename } from 'fs/promises'
+import { open } from 'fs/promises'
 import { join } from 'path'
 import { homedir } from 'os'
+import { randomBytes } from 'crypto'
 
 export type PlanId = 'claude-pro' | 'claude-max' | 'cursor-pro' | 'custom' | 'none'
 export type PlanProvider = 'claude' | 'codex' | 'cursor' | 'all'
@@ -23,7 +25,8 @@ export type ExeFuelbarConfig = {
 }
 
 function getConfigDir(): string {
-  return join(homedir(), '.config', 'exe-fuelbar')
+  const xdgConfig = process.env['XDG_CONFIG_HOME']
+  return join(xdgConfig || join(homedir(), '.config'), 'exe-fuelbar')
 }
 
 function getConfigPath(): string {
@@ -42,8 +45,14 @@ export async function readConfig(): Promise<ExeFuelbarConfig> {
 export async function saveConfig(config: ExeFuelbarConfig): Promise<void> {
   await mkdir(getConfigDir(), { recursive: true })
   const configPath = getConfigPath()
-  const tmpPath = `${configPath}.tmp`
-  await writeFile(tmpPath, JSON.stringify(config, null, 2) + '\n', 'utf-8')
+  const tmpPath = `${configPath}.${randomBytes(8).toString('hex')}.tmp`
+  const handle = await open(tmpPath, 'w', 0o600)
+  try {
+    await handle.writeFile(JSON.stringify(config, null, 2) + '\n', { encoding: 'utf-8' })
+    await handle.sync()
+  } finally {
+    await handle.close()
+  }
   await rename(tmpPath, configPath)
 }
 

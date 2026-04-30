@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
-import { mkdir, mkdtemp, rename, rm, stat } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, rename, rm, stat } from 'node:fs/promises'
 import { homedir, platform, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
@@ -162,7 +162,18 @@ export async function installMenubarApp(options: { force?: boolean } = {}): Prom
       await killRunningApp()
       await rm(targetPath, { recursive: true, force: true })
     }
-    await rename(unpackedApp, targetPath)
+    try {
+      await rename(unpackedApp, targetPath)
+    } catch (err) {
+      // EXDEV: rename fails across filesystem boundaries (e.g. $TMPDIR on a
+      // different APFS volume than ~/Applications). Fall back to copy + delete.
+      if ((err as NodeJS.ErrnoException).code === 'EXDEV') {
+        await cp(unpackedApp, targetPath, { recursive: true })
+        await rm(unpackedApp, { recursive: true, force: true })
+      } else {
+        throw err
+      }
+    }
 
     console.log('Launching Exe Fuelbar Menubar...')
     await runCommand('/usr/bin/open', [targetPath])

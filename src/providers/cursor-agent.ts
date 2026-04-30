@@ -121,7 +121,9 @@ function prettifyProjectId(raw: string): string {
     }
   }
 
-  const withoutPrefix = raw.replace(/^-Users-/, '')
+  // Strip encoded home directory prefix on macOS (-Users-<user>-...)
+  // and Windows (-C-Users-<user>-... or -<Drive>-Users-<user>-...)
+  const withoutPrefix = raw.replace(/^-(?:[A-Za-z]-)?Users-[^-]+-?/, '')
   const parts = withoutPrefix.split('-').filter(Boolean)
   if (parts.length > 0) return parts[parts.length - 1]!
 

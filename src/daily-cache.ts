@@ -1,8 +1,9 @@
 import { randomBytes } from 'crypto'
 import { existsSync } from 'fs'
 import { mkdir, open, readFile, rename, unlink } from 'fs/promises'
-import { homedir } from 'os'
 import { join } from 'path'
+
+import { getCacheDir } from './cache-dir.js'
 
 export const DAILY_CACHE_VERSION = 3
 const DAILY_CACHE_FILENAME = 'daily-cache.json'
@@ -34,10 +35,6 @@ export type DailyCache = {
   version: number
   lastComputedDate: string | null
   days: DailyEntry[]
-}
-
-function getCacheDir(): string {
-  return process.env['EXE_FUELBAR_CACHE_DIR'] ?? join(homedir(), '.cache', 'exe-fuelbar')
 }
 
 function getCachePath(): string {
