@@ -967,4 +967,15 @@ program
     console.log(lines.join('\n'))
   })
 
-program.parse()
+// Default action: install menubar app on macOS when no subcommand given
+if (process.argv.length <= 2 && process.platform === 'darwin') {
+  installMenubarApp().then(result => {
+    console.log(`\n  Installed: ${result.installedPath}`)
+    if (result.launched) console.log('  Launched.')
+  }).catch(err => {
+    console.error(`\n  ${err instanceof Error ? err.message : String(err)}`)
+    process.exitCode = 1
+  })
+} else {
+  program.parse()
+}

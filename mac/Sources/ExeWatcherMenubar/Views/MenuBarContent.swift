@@ -216,14 +216,14 @@ private struct BurnLoadingOverlay: View {
 }
 
 private struct Header: View {
+    @Environment(AppStore.self) private var store
     @Environment(UpdateChecker.self) private var updateChecker
 
     var body: some View {
         HStack {
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .center, spacing: 8) {
                 OwlIcon(size: 28)
                     .foregroundStyle(Theme.brandAccent)
-                    .offset(y: 1)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("WATCHER")
                     .foregroundStyle(Color(red: 0xD4/255.0, green: 0x61/255.0, blue: 0x9C/255.0))
@@ -237,6 +237,12 @@ private struct Header: View {
             Spacer()
             if updateChecker.updateAvailable {
                 UpdateBadge()
+            } else {
+                Text(store.payload.current.cost.asCurrency())
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .tracking(-0.5)
+                    .foregroundStyle(Theme.brandAccent)
             }
         }
         .padding(.horizontal, 14)

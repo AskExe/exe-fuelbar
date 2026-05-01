@@ -4,33 +4,24 @@ struct HeroSection: View {
     @Environment(AppStore.self) private var store
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        HStack {
             SectionCaption(text: caption)
-
-            HStack(alignment: .firstTextBaseline) {
-                Text(store.payload.current.cost.asCurrency())
-                    .font(.system(size: 32, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .tracking(-1)
-                    .foregroundStyle(Theme.brandAccent)
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(store.payload.current.calls.asThousandsSeparated()) calls")
-                        .font(.system(size: 11))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                    Text("\(store.payload.current.sessions) sessions")
-                        .font(.system(size: 10.5))
-                        .monospacedDigit()
-                        .foregroundStyle(.tertiary)
-                }
-            }
+            Spacer()
+            Text("\(store.payload.current.calls.asThousandsSeparated()) calls")
+                .font(.system(size: 11))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+            Text("·")
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+            Text("\(store.payload.current.sessions) sess")
+                .font(.system(size: 11))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 14)
-        .padding(.top, 10)
-        .padding(.bottom, 12)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
     }
 
     private var caption: String {

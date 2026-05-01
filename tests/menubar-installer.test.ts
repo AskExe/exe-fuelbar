@@ -159,7 +159,7 @@ describe('menubar-installer', () => {
 
       expect(typeof result.installedPath).toBe('string')
       expect(typeof result.launched).toBe('boolean')
-      expect(result.installedPath).toContain('ExeWatcherMenubar.app')
+      expect(result.installedPath).toContain('Watcher by EXE.app')
       expect(result.launched).toBe(true)
     })
   })
