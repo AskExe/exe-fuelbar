@@ -220,14 +220,18 @@ private struct Header: View {
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("WATCHER")
-                .foregroundStyle(Color(red: 0xD4/255.0, green: 0x61/255.0, blue: 0x9C/255.0))
-                .font(.custom("Epilogue", size: 14).weight(.bold))
-                .tracking(2)
-                Text("AGENT MEMORY & USAGE DASHBOARD")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                OwlIcon(size: 28)
+                    .foregroundStyle(Theme.brandAccent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("WATCHER")
+                    .foregroundStyle(Theme.brandAccent)
+                    .font(.custom("Epilogue", size: 14).weight(.bold))
+                    .tracking(2)
+                    Text("by EXE")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.brandAccent.opacity(0.6))
+                }
             }
             Spacer()
             if updateChecker.updateAvailable {
