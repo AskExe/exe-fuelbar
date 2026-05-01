@@ -220,9 +220,10 @@ private struct Header: View {
 
     var body: some View {
         HStack {
-            HStack(spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
                 OwlIcon(size: 28)
                     .foregroundStyle(Theme.brandAccent)
+                    .offset(y: 1)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("WATCHER")
                     .foregroundStyle(Color(red: 0xD4/255.0, green: 0x61/255.0, blue: 0x9C/255.0))
