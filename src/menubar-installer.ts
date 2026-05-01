@@ -9,7 +9,7 @@ import { Readable } from 'node:stream'
 /// Public GitHub repo that hosts signed macOS release builds. `/releases/latest` returns the
 /// newest tagged release; we filter its assets list for our zipped .app bundle.
 const RELEASE_API = 'https://api.github.com/repos/AskExe/exe-watcher/releases/latest'
-const APP_BUNDLE_NAME = 'ExeWatcherMenubar.app'
+const APP_BUNDLE_NAME = 'Watcher by EXE.app'
 const ASSET_PATTERN = /^ExeWatcherMenubar-.*\.zip$/
 const APP_PROCESS_NAME = 'ExeWatcherMenubar'
 const SUPPORTED_OS = 'darwin'

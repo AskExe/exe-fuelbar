@@ -9,7 +9,7 @@
 set -euo pipefail
 
 VERSION="${1:-dev}"
-BUNDLE_NAME="ExeWatcherMenubar.app"
+BUNDLE_NAME="Watcher by EXE.app"
 BUNDLE_ID="com.askexe.exe-watcher-menubar"
 EXECUTABLE_NAME="ExeWatcherMenubar"
 MIN_MACOS="14.0"
