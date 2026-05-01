@@ -48,13 +48,16 @@ struct AgentTabStrip: View {
         return tabs.count > 1 ? tabs : []
     }
 
+    /// Cost uses the *selected period* payload so values update when switching 7d/30d/etc.
+    /// Tab visibility still uses todayPayload so tabs don't disappear on period switch.
     private func cost(for filter: ProviderFilter) -> Double? {
+        let payload = store.payload
         switch filter {
         case .all:
-            return allProvidersToday.current.cost
+            return payload.current.cost
         default:
             let key = filter.rawValue.lowercased()
-            return allProvidersToday.current.providers[key]
+            return payload.current.providers[key]
         }
     }
 }
@@ -73,7 +76,7 @@ private struct AgentTab: View {
                 .font(.system(size: 11.5, weight: .semibold))
                 .tracking(-0.05)
                 .foregroundStyle(isActive ? Self.activeTextColor : .secondary)
-            if let cost, cost > 0 {
+            if filter != .all, let cost, cost > 0 {
                 Text(cost.asCompactCurrency())
                     .font(.codeMono(size: 10.5, weight: .medium))
                     .foregroundStyle(isActive ? Self.activeTextColor : .secondary)

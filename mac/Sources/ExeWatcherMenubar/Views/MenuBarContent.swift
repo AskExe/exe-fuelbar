@@ -233,6 +233,7 @@ private struct Header: View {
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Theme.brandAccent.opacity(0.6))
                 }
+                .offset(y: 4)
             }
             Spacer()
             if updateChecker.updateAvailable {
