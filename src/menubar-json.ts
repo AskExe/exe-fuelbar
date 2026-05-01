@@ -138,7 +138,7 @@ function loadSessionAgentMap(): Map<string, string> {
         const raw = readFileSync(join(cacheDir, file), 'utf-8')
         const data = JSON.parse(raw) as { agentId?: string }
         if (data.agentId) {
-          // Normalize: strip session suffixes like "yoshi-exe1" → "yoshi"
+          // Normalize: strip session suffixes like "worker1-exe1" → "worker1"
           const baseId = data.agentId.replace(/-exe\d+$/, '')
           map.set(sessionId, baseId)
         }
