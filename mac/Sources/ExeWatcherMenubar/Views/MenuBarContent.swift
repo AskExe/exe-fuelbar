@@ -225,7 +225,7 @@ private struct Header: View {
                     .foregroundStyle(Theme.brandAccent)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("WATCHER")
-                    .foregroundStyle(Theme.brandAccent)
+                    .foregroundStyle(Color(red: 0xD4/255.0, green: 0x61/255.0, blue: 0x9C/255.0))
                     .font(.custom("Epilogue", size: 14).weight(.bold))
                     .tracking(2)
                     Text("by EXE")
