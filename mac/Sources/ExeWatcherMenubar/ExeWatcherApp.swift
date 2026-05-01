@@ -6,7 +6,7 @@ import ServiceManagement
 private let refreshIntervalSeconds: UInt64 = 60
 private let idleRefreshIntervalSeconds: UInt64 = 300
 private let statusItemWidth: CGFloat = NSStatusItem.variableLength
-private let popoverWidth: CGFloat = 360
+private let popoverWidth: CGFloat = 375
 private let popoverHeight: CGFloat = 660
 private let menubarTitleFontSize: CGFloat = 13
 

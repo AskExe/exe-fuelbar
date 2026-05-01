@@ -133,9 +133,14 @@ struct MenuBarContent: View {
 
     /// True when a specific provider tab is selected and that provider has no spend in the
     /// currently selected period. The .all tab is exempt -- it always shows aggregated data.
+    /// Also returns false if data hasn't been fetched yet (payload is empty default),
+    /// so we don't flash an empty state while the first fetch is in flight.
     private var isFilteredEmpty: Bool {
         guard store.selectedProvider != .all else { return false }
-        return store.payload.current.cost <= 0 && store.payload.current.calls == 0
+        let p = store.payload
+        // If generated is empty, we haven't fetched yet — don't show empty state
+        guard !p.generated.isEmpty else { return false }
+        return p.current.cost <= 0 && p.current.calls == 0
     }
 
     /// Show the tab row whenever the CLI detected at least one AI coding tool installed
