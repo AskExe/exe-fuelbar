@@ -34,11 +34,20 @@ struct DataClient {
         guard result.exitCode == 0 else {
             throw DataClientError.nonZeroExit(code: result.exitCode, stderr: result.stderr)
         }
+        let payload: MenubarPayload
         do {
-            return try JSONDecoder().decode(MenubarPayload.self, from: result.stdout)
+            payload = try JSONDecoder().decode(MenubarPayload.self, from: result.stdout)
         } catch {
             throw DataClientError.decode(error)
         }
+
+        if let diag = payload.diagnostics, !diag.warnings.isEmpty {
+            for warning in diag.warnings {
+                NSLog("Exe Watcher CLI warning: %@", warning)
+            }
+        }
+
+        return payload
     }
 
     private struct ProcessResult {

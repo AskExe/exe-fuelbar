@@ -58,6 +58,14 @@ final class AppStore {
         payload.optimize.findingCount
     }
 
+    /// True when a fetch error occurred or the CLI reported diagnostic warnings,
+    /// indicating the displayed data may be stale or incomplete.
+    var dataMayBeStale: Bool {
+        if lastError != nil { return true }
+        if let diag = payload.diagnostics, !diag.warnings.isEmpty { return true }
+        return false
+    }
+
     /// Switch to a period. Shows cached data instantly, then refreshes in background.
     func switchTo(period: Period) async {
         selectedPeriod = period

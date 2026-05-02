@@ -7,10 +7,17 @@ struct MenubarPayload: Codable, Sendable {
     let current: CurrentBlock
     let optimize: OptimizeBlock
     let history: HistoryBlock
+    let diagnostics: DiagnosticsBlock?
     let agentStats: AgentStatsBlock?
     let exeOsDetected: Bool?
     let statsFileAge: Double?
     let projectSpend: [ProjectSpendEntry]?
+}
+
+struct DiagnosticsBlock: Codable, Sendable {
+    let daysCount: Int
+    let parseTimeMs: Int
+    let warnings: [String]
 }
 
 struct ProjectSpendEntry: Codable, Sendable, Identifiable {
@@ -186,6 +193,7 @@ extension MenubarPayload {
         ),
         optimize: OptimizeBlock(findingCount: 0, savingsUSD: 0, topFindings: []),
         history: HistoryBlock(daily: []),
+        diagnostics: nil,
         agentStats: nil,
         exeOsDetected: nil,
         statsFileAge: nil,

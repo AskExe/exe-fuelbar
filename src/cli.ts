@@ -9,7 +9,7 @@ import { parseAllSessions, filterProjectsByName } from './parser.js'
 import { convertCost } from './currency.js'
 import { renderStatusBar } from './format.js'
 import { type PeriodData, type ProviderCost, type AgentStatsPayload } from './menubar-json.js'
-import { buildMenubarPayload, computeAgentSpend, mergeAgentSpend, buildProjectSpend, estimateAgentCosts } from './menubar-json.js'
+import { buildMenubarPayload, computeAgentSpend, mergeAgentSpend, buildProjectSpend, estimateAgentCosts, type DiagnosticsBlock } from './menubar-json.js'
 import { addNewDays, getDaysInRange, loadDailyCache, saveDailyCache, withDailyCacheLock } from './daily-cache.js'
 import { aggregateProjectsIntoDays, buildPeriodDataFromDays, filterDaysToProvider, dateKey } from './day-aggregator.js'
 import { CATEGORY_LABELS, type DateRange, type ProjectSummary, type TaskCategory } from './types.js'
@@ -425,12 +425,30 @@ program
 
       // Parse only today's sessions once — reused across period data, providers, and history.
       const todayRange: DateRange = { start: todayStart, end: periodInfo.range.end }
-      const todayProjects = fp(await parseAllSessions(todayRange, 'all'))
+      const warnings: string[] = []
+      const parseStart = Date.now()
+      let todayProjects: ProjectSummary[]
+      try {
+        todayProjects = fp(await parseAllSessions(todayRange, 'all'))
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        const warn = `parseAllSessions failed: ${msg}`
+        warnings.push(warn)
+        process.stderr.write(`[exe-watcher] WARNING: ${warn}\n`)
+        todayProjects = []
+      }
+      if (todayProjects.length === 0) {
+        const warn = `parseAllSessions returned 0 projects for range ${toDateString(todayRange.start)}..${toDateString(todayRange.end)}`
+        warnings.push(warn)
+        process.stderr.write(`[exe-watcher] WARNING: ${warn}\n`)
+      }
+      const parseTimeMs = Date.now() - parseStart
       const todayDays = aggregateProjectsIntoDays(todayProjects)
 
       // Unified path: always assemble from cache + today for consistency.
       // Previously, specific providers re-parsed all sessions which could produce different
       // totals than the all-provider breakdown (different dedup order, different discovery).
+      let daysCount = 0
       {
         const rangeStartStr = toDateString(periodInfo.range.start)
         const rangeEndStr = toDateString(periodInfo.range.end)
@@ -439,6 +457,7 @@ program
         // Without this filter, days between rangeStart and yesterday appear in BOTH arrays.
         const todayOnly = todayDays.filter(d => d.date > yesterdayStr && d.date <= rangeEndStr)
         const allDays = [...historicalDays, ...todayOnly].sort((a, b) => a.date.localeCompare(b.date))
+        daysCount = allDays.length
 
         if (isAllProviders) {
           currentData = buildPeriodDataFromDays(allDays, periodInfo.label)
@@ -465,6 +484,11 @@ program
           ...getDaysInRange(cache, rangeStartStr, yesterdayStr),
           ...todayDays.filter(d => d.date > yesterdayStr),
         ]
+        if (allDaysForProviders.length === 0) {
+          const warn = 'allDaysForProviders is empty — all providers will show $0'
+          warnings.push(warn)
+          process.stderr.write(`[exe-watcher] WARNING: ${warn}\n`)
+        }
         const providerTotals: Record<string, number> = {}
         for (const d of allDaysForProviders) {
           for (const [name, p] of Object.entries(d.providers)) {
@@ -566,7 +590,8 @@ program
       ])
       const projectSpend = buildProjectSpend(proj24h, proj7d, proj30d)
 
-      console.log(JSON.stringify(buildMenubarPayload(currentData, providers, optimize, dailyHistory, agentStats, projectSpend, exeOsDetected, statsFileAge)))
+      const diagnostics: DiagnosticsBlock = { daysCount, parseTimeMs, warnings }
+      console.log(JSON.stringify(buildMenubarPayload(currentData, providers, optimize, dailyHistory, agentStats, projectSpend, exeOsDetected, statsFileAge, diagnostics)))
       return
     }
 

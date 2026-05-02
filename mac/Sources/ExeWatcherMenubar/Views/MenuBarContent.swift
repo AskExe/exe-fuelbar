@@ -251,11 +251,18 @@ private struct Header: View {
             if updateChecker.updateAvailable {
                 UpdateBadge()
             } else {
-                Text(store.payload.current.cost.asCurrency())
-                    .font(.system(size: 22, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .tracking(-0.5)
-                    .foregroundStyle(Theme.brandAccent)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(store.payload.current.cost.asCurrency())
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .tracking(-0.5)
+                        .foregroundStyle(Theme.brandAccent)
+                    if store.dataMayBeStale {
+                        Text("Data may be stale")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.orange.opacity(0.8))
+                    }
+                }
             }
         }
         .padding(.horizontal, 14)

@@ -123,6 +123,9 @@ export function filterDaysToProvider(days: DailyEntry[], provider: string): Dail
 }
 
 export function buildPeriodDataFromDays(days: DailyEntry[], label: string): PeriodData {
+  if (days.length === 0) {
+    process.stderr.write(`[exe-watcher] WARNING: buildPeriodDataFromDays called with 0 days for label '${label}'\n`)
+  }
   let cost = 0, calls = 0, sessions = 0
   let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheWriteTokens = 0
   const catTotals: Record<string, { turns: number; cost: number; editTurns: number; oneShotTurns: number }> = {}

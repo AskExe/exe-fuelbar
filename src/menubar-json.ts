@@ -49,6 +49,12 @@ export type DailyHistoryEntry = {
   topModels: DailyModelBreakdown[]
 }
 
+export type DiagnosticsBlock = {
+  daysCount: number
+  parseTimeMs: number
+  warnings: string[]
+}
+
 export type MenubarPayload = {
   generated: string
   current: {
@@ -85,6 +91,7 @@ export type MenubarPayload = {
   history: {
     daily: DailyHistoryEntry[]
   }
+  diagnostics: DiagnosticsBlock
   agentStats: AgentStatsPayload | null
   exeOsDetected: boolean
   statsFileAge: number | null
@@ -330,6 +337,7 @@ export function buildMenubarPayload(
   projectSpend?: Array<{ name: string; cost24h: number; cost7d: number; cost30d: number; sessions: number }> | null,
   exeOsDetected?: boolean,
   statsFileAge?: number | null,
+  diagnostics?: DiagnosticsBlock,
 ): MenubarPayload {
   return {
     generated: new Date().toISOString(),
@@ -348,6 +356,7 @@ export function buildMenubarPayload(
     },
     optimize: buildOptimize(optimize),
     history: buildHistory(dailyHistory),
+    diagnostics: diagnostics ?? { daysCount: 0, parseTimeMs: 0, warnings: [] },
     agentStats: agentStats ?? null,
     exeOsDetected: exeOsDetected ?? false,
     statsFileAge: statsFileAge ?? null,
