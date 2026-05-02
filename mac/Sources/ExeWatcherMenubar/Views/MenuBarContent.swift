@@ -121,6 +121,13 @@ struct MenuBarContent: View {
                 }
             }
             .frame(height: 520)
+            .overlay {
+                if !store.hasCachedData && store.payload.generated.isEmpty {
+                    BurnLoadingOverlay(periodLabel: store.selectedPeriod.rawValue)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .allowsHitTesting(false)
+                }
+            }
 
             Divider()
 

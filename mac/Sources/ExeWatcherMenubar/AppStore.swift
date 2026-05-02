@@ -56,14 +56,13 @@ final class AppStore {
     func switchTo(period: Period) async {
         selectedPeriod = period
         // If we have cached data, it's already showing via the @Observable payload getter.
-        // Refresh silently in the background so the UI never stalls.
-        await refreshQuietly(period: period)
+        Task { await self.refreshForSelectionInBackground(period: period, provider: selectedProvider) }
     }
 
     /// Switch to a provider filter. Shows cached data instantly, then refreshes in background.
     func switchTo(provider: ProviderFilter) async {
         selectedProvider = provider
-        await refreshQuietly(period: selectedPeriod)
+        Task { await self.refreshForSelectionInBackground(period: selectedPeriod, provider: provider) }
     }
 
     /// Pre-fetch all periods so tab switching is instant from cache.
@@ -80,6 +79,10 @@ final class AppStore {
     /// finished first (which would show stale numbers the user has already moved past).
     func refresh(includeOptimize: Bool) async {
         let key = currentKey
+        await refreshKey(key, includeOptimize: includeOptimize)
+    }
+
+    private func refreshKey(_ key: PayloadCacheKey, includeOptimize: Bool) async {
         guard !inFlightKeys.contains(key) else { return }
         inFlightKeys.insert(key)
         defer { inFlightKeys.remove(key) }
@@ -87,33 +90,63 @@ final class AppStore {
             let fresh = try await DataClient.fetch(period: key.period, provider: key.provider, includeOptimize: includeOptimize)
             cache[key] = CachedPayload(payload: fresh, fetchedAt: Date())
             lastError = nil
+
+            if key.provider == .all {
+                await prefetchVisibleProviderPayloads(for: key.period)
+            }
         } catch {
             lastError = String(describing: error)
             NSLog("Exe Watcher: fetch failed for \(key.period.rawValue)/\(key.provider.rawValue): \(error)")
         }
     }
 
+    private func isFresh(_ key: PayloadCacheKey) -> Bool {
+        cache[key]?.isFresh ?? false
+    }
+
+    /// Refresh payload for key only when missing or stale.
+    private func refreshIfNeeded(_ key: PayloadCacheKey, includeOptimize: Bool) async {
+        guard !isFresh(key) else { return }
+        await refreshKey(key, includeOptimize: includeOptimize)
+    }
+
     /// Silent background refresh — does NOT toggle isLoading, so the popover loading overlay
-    /// never flashes. Used by the timer loop. Fetches for the given period + the currently
-    /// selected provider (so the visible popover tab stays fresh), plus always refreshes
-    /// the .all provider for the menubar badge.
+    /// never flashes. Used by the timer loop and launch prefetch.
+    /// Always refreshes the .all-provider payload for the menubar badge, then preloads any
+    /// active provider payloads for that period so tab switches are instant.
     func refreshQuietly(period: Period) async {
-        do {
-            let fresh = try await DataClient.fetch(period: period, provider: .all, includeOptimize: false)
-            cache[PayloadCacheKey(period: period, provider: .all)] = CachedPayload(payload: fresh, fetchedAt: Date())
-        } catch {
-            NSLog("Exe Watcher: quiet refresh failed for \(period.rawValue)/all: \(error)")
-        }
-        // Also refresh the currently-selected provider if it's not .all, so the visible
-        // popover tab picks up new data silently.
-        let provider = selectedProvider
-        if provider != .all {
-            do {
-                let fresh = try await DataClient.fetch(period: period, provider: provider, includeOptimize: false)
-                cache[PayloadCacheKey(period: period, provider: provider)] = CachedPayload(payload: fresh, fetchedAt: Date())
-            } catch {
-                NSLog("Exe Watcher: quiet refresh failed for \(period.rawValue)/\(provider.rawValue): \(error)")
+        let allKey = PayloadCacheKey(period: period, provider: .all)
+        await refreshIfNeeded(allKey, includeOptimize: false)
+        await prefetchVisibleProviderPayloads(for: period)
+    }
+
+    /// Front-load all visible provider payloads for the period so tab switches can be immediate.
+    private func prefetchVisibleProviderPayloads(for period: Period) async {
+        guard let payload = cache[PayloadCacheKey(period: period, provider: .all)]?.payload else { return }
+
+        let providers = ProviderFilter.allCases
+            .filter { filter in
+                filter != .all
             }
+            .compactMap { filter in
+                let hasSpend = payload.current.providers.contains { key, cost in
+                    cost > 0 && key.lowercased() == filter.rawValue.lowercased()
+                }
+                return hasSpend ? filter : nil
+            }
+
+        for filter in providers {
+            let key = PayloadCacheKey(period: period, provider: filter)
+            await refreshIfNeeded(key, includeOptimize: false)
+        }
+    }
+
+    /// Silent background refresh for the user-selected state that never blocks tab switching.
+    private func refreshForSelectionInBackground(period: Period, provider: ProviderFilter) async {
+        let target = PayloadCacheKey(period: period, provider: provider == .all ? .all : provider)
+        await refreshIfNeeded(target, includeOptimize: false)
+        if provider != .all {
+            await prefetchVisibleProviderPayloads(for: period)
         }
     }
 
