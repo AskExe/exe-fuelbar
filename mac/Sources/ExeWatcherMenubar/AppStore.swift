@@ -44,6 +44,12 @@ final class AppStore {
         cache[PayloadCacheKey(period: .today, provider: .all)]?.payload
     }
 
+    /// All-provider payload for the currently selected period. Used by tab labels to show each
+    /// provider's cost even when a specific provider tab is active.
+    var allProviderPayloadForPeriod: MenubarPayload? {
+        cache[PayloadCacheKey(period: selectedPeriod, provider: .all)]?.payload
+    }
+
     var hasCachedData: Bool {
         cache[currentKey] != nil
     }

@@ -11,7 +11,7 @@ import { renderStatusBar } from './format.js'
 import { type PeriodData, type ProviderCost, type AgentStatsPayload } from './menubar-json.js'
 import { buildMenubarPayload, computeAgentSpend, mergeAgentSpend, buildProjectSpend, estimateAgentCosts } from './menubar-json.js'
 import { addNewDays, getDaysInRange, loadDailyCache, saveDailyCache, withDailyCacheLock } from './daily-cache.js'
-import { aggregateProjectsIntoDays, buildPeriodDataFromDays, dateKey } from './day-aggregator.js'
+import { aggregateProjectsIntoDays, buildPeriodDataFromDays, filterDaysToProvider, dateKey } from './day-aggregator.js'
 import { CATEGORY_LABELS, type DateRange, type ProjectSummary, type TaskCategory } from './types.js'
 import { renderDashboard } from './dashboard.js'
 import { parseDateRangeFlags } from './cli-date.js'
@@ -428,7 +428,10 @@ program
       const todayProjects = fp(await parseAllSessions(todayRange, 'all'))
       const todayDays = aggregateProjectsIntoDays(todayProjects)
 
-      if (isAllProviders) {
+      // Unified path: always assemble from cache + today for consistency.
+      // Previously, specific providers re-parsed all sessions which could produce different
+      // totals than the all-provider breakdown (different dedup order, different discovery).
+      {
         const rangeStartStr = toDateString(periodInfo.range.start)
         const rangeEndStr = toDateString(periodInfo.range.end)
         const historicalDays = getDaysInRange(cache, rangeStartStr, yesterdayStr)
@@ -436,13 +439,16 @@ program
         // Without this filter, days between rangeStart and yesterday appear in BOTH arrays.
         const todayOnly = todayDays.filter(d => d.date > yesterdayStr && d.date <= rangeEndStr)
         const allDays = [...historicalDays, ...todayOnly].sort((a, b) => a.date.localeCompare(b.date))
-        currentData = buildPeriodDataFromDays(allDays, periodInfo.label)
+
+        if (isAllProviders) {
+          currentData = buildPeriodDataFromDays(allDays, periodInfo.label)
+        } else {
+          // Filter to the specific provider's cost/calls from the same aggregated data,
+          // so the number always matches the all-provider breakdown.
+          const providerDays = filterDaysToProvider(allDays, pf)
+          currentData = buildPeriodDataFromDays(providerDays, periodInfo.label)
+        }
         scanProjects = todayProjects
-        scanRange = periodInfo.range
-      } else {
-        const projects = fp(await parseAllSessions(periodInfo.range, pf))
-        currentData = buildPeriodData(periodInfo.label, projects)
-        scanProjects = projects
         scanRange = periodInfo.range
       }
 

@@ -48,16 +48,24 @@ struct AgentTabStrip: View {
         return tabs.count > 1 ? tabs : []
     }
 
-    /// Cost uses the *selected period* payload so values update when switching 7d/30d/etc.
-    /// Tab visibility still uses todayPayload so tabs don't disappear on period switch.
+    /// Cost for each tab label.
+    /// - .all tab: shows the selected period's total cost (reflects period switch)
+    /// - Active provider tab: shows the selected-provider payload cost (matches detail view)
+    /// - Inactive provider tabs: shows cost from the all-provider payload so amounts stay
+    ///   visible even when another provider tab is selected
     private func cost(for filter: ProviderFilter) -> Double? {
-        let payload = store.payload
         switch filter {
         case .all:
-            return payload.current.cost
+            // "All" always reflects the selected period's grand total
+            return store.payload.current.cost
         default:
             let key = filter.rawValue.lowercased()
-            return payload.current.providers[key]
+            // Always look up per-provider cost from the all-provider payload so inactive
+            // tabs keep showing their dollar amount regardless of which tab is selected.
+            // This also fixes the discrepancy where the active tab's filtered payload could
+            // show a different number than the all-provider breakdown.
+            let allPayload = store.allProviderPayloadForPeriod ?? allProvidersToday
+            return allPayload.current.providers[key]
         }
     }
 }

@@ -93,6 +93,35 @@ export function aggregateProjectsIntoDays(projects: ProjectSummary[]): DailyEntr
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
 }
 
+/**
+ * Narrow DailyEntry[] to a single provider's cost/calls.
+ * Models, categories, and tokens are not broken down per-provider in the cache,
+ * so we zero them out — the cost/calls (which power the tab labels and totals)
+ * are the fields that matter for consistency.
+ */
+export function filterDaysToProvider(days: DailyEntry[], provider: string): DailyEntry[] {
+  return days.map(d => {
+    const p = d.providers[provider]
+    if (!p) return null
+    return {
+      ...d,
+      cost: p.cost,
+      calls: p.calls,
+      // sessions count is not per-provider in cache — approximate at 0
+      sessions: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      editTurns: 0,
+      oneShotTurns: 0,
+      models: {},
+      categories: {},
+      providers: { [provider]: p },
+    }
+  }).filter((d): d is DailyEntry => d !== null)
+}
+
 export function buildPeriodDataFromDays(days: DailyEntry[], label: string): PeriodData {
   let cost = 0, calls = 0, sessions = 0
   let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheWriteTokens = 0
