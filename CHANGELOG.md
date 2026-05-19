@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.28 (2026-05-19)
+
+### Fixes
+- Make the macOS menubar refresh from real usage-log file changes instead of relying only on the 30s safety timer or manual popover refresh.
+- Watch Claude, Codex, Cursor, and OpenCode usage directories with FSEvents and debounce refreshes during active coding.
+
 ## 0.2.13 (2026-05-06)
 
 ### Fixes
