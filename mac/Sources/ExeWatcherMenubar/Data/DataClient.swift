@@ -7,9 +7,11 @@ import Foundation
 private let maxPayloadBytes = 20 * 1024 * 1024
 private let maxStderrBytes = 256 * 1024
 private let spawnTimeoutSeconds: UInt64 = 60
-/// Badge-only fetches use a shorter timeout so a slow/hung CLI doesn't block
-/// two full 30s timer cycles before the badge can retry.
-private let badgeTimeoutSeconds: UInt64 = 15
+/// Badge-only fetches must tolerate large local session corpora. If this is shorter than the
+/// real `status --format menubar-json --period today --provider all --no-optimize` runtime, the
+/// always-visible badge keeps showing the last cached value and the popover warns "Data may be
+/// stale" until the user manually refreshes through the 60s detail path.
+private let badgeTimeoutSeconds: UInt64 = spawnTimeoutSeconds
 
 enum DataClientError: Error {
     case spawn(String)

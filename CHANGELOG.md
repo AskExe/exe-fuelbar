@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.29 (2026-05-19)
+
+### Fixes
+- Let automatic menubar badge refreshes use the same 60s timeout as manual refreshes so large local session corpora do not falsely show "Data may be stale".
+
 ## 0.2.28 (2026-05-19)
 
 ### Fixes
