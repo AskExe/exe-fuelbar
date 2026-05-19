@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import Observation
 import ServiceManagement
+import CoreServices
 
 /// Keep the always-visible menu bar badge live. This matches the README/product promise and
 /// avoids the badge appearing stuck while the popover is closed during active coding sessions.
@@ -31,6 +32,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private let store = AppStore()
     let updateChecker = UpdateChecker()
     private var dispatchTimer: DispatchSourceTimer?
+    private var usageLogWatcher: UsageLogWatcher?
+    private var usageLogDebounceTask: Task<Void, Never>?
     /// Held for the lifetime of the app to prevent Automatic Termination.
     private var backgroundActivity: NSObjectProtocol?
 
@@ -50,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         setupPopover()
         observeStore()
         startRefreshLoop()
+        startUsageLogWatcher()
         setupWakeObservers()
         cleanupLegacyLaunchAgent()
         registerLoginItemIfNeeded()
@@ -136,6 +140,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         dispatchTimer?.cancel()
+        usageLogDebounceTask?.cancel()
+        usageLogWatcher?.stop()
     }
 
     private func startRefreshLoop() {
@@ -149,6 +155,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         // Popover starts closed — use the idle interval. popoverWillShow will tighten to 60s.
         rescheduleTimer(intervalSeconds: idleRefreshIntervalSeconds)
+    }
+
+    /// The 30s timer is a safety net, not the freshness mechanism. Usage files are append-only
+    /// while the user is actively coding, so watch those directories and refresh shortly after
+    /// real writes. Without this, an accessory app can look stale until opening the popover,
+    /// because popoverWillShow/manual Refresh are the only event-driven refresh paths.
+    private func startUsageLogWatcher() {
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser.path
+        let candidates = [
+            ProcessInfo.processInfo.environment["CLAUDE_CONFIG_DIR"].map { "\($0)/projects" } ?? "\(home)/.claude/projects",
+            "\(home)/Library/Application Support/Claude/local-agent-mode-sessions",
+            ProcessInfo.processInfo.environment["CODEX_HOME"].map { "\($0)/sessions" } ?? "\(home)/.codex/sessions",
+            "\(home)/.cursor",
+            "\(home)/Library/Application Support/Cursor",
+            "\(home)/.local/share/opencode",
+        ]
+        let paths = candidates.filter { fm.fileExists(atPath: $0) }
+        guard !paths.isEmpty else { return }
+
+        usageLogWatcher = UsageLogWatcher(paths: paths) { [weak self] in
+            Task { @MainActor in
+                self?.scheduleUsageLogRefresh()
+            }
+        }
+        usageLogWatcher?.start()
+    }
+
+    private func scheduleUsageLogRefresh() {
+        usageLogDebounceTask?.cancel()
+        usageLogDebounceTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            guard !Task.isCancelled else { return }
+            self?.forceRefresh()
+        }
     }
 
     private func rescheduleTimer(intervalSeconds: UInt64) {
@@ -379,5 +420,73 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         img.isTemplate = true
         return img
+    }
+}
+
+private final class UsageLogWatcher: @unchecked Sendable {
+    private let paths: [String]
+    private let onChange: @Sendable () -> Void
+    private var stream: FSEventStreamRef?
+
+    init(paths: [String], onChange: @escaping @Sendable () -> Void) {
+        self.paths = paths
+        self.onChange = onChange
+    }
+
+    deinit {
+        stop()
+    }
+
+    func start() {
+        guard stream == nil, !paths.isEmpty else { return }
+
+        var context = FSEventStreamContext(
+            version: 0,
+            info: Unmanaged.passUnretained(self).toOpaque(),
+            retain: nil,
+            release: nil,
+            copyDescription: nil
+        )
+
+        let callback: FSEventStreamCallback = { _, info, count, _, _, _ in
+            guard let info else { return }
+            guard count > 0 else { return }
+
+            let watcher = Unmanaged<UsageLogWatcher>.fromOpaque(info).takeUnretainedValue()
+            DispatchQueue.main.async {
+                watcher.onChange()
+            }
+        }
+
+        stream = FSEventStreamCreate(
+            kCFAllocatorDefault,
+            callback,
+            &context,
+            paths as CFArray,
+            FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
+            1.0,
+            FSEventStreamCreateFlags(kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagFileEvents)
+        )
+
+        guard let stream else {
+            NSLog("Exe Watcher: failed to create usage log watcher")
+            return
+        }
+
+        FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+        if !FSEventStreamStart(stream) {
+            NSLog("Exe Watcher: failed to start usage log watcher")
+            stop()
+        } else {
+            NSLog("Exe Watcher: watching usage logs: \(paths.joined(separator: ", "))")
+        }
+    }
+
+    func stop() {
+        guard let stream else { return }
+        FSEventStreamStop(stream)
+        FSEventStreamInvalidate(stream)
+        FSEventStreamRelease(stream)
+        self.stream = nil
     }
 }
