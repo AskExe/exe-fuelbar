@@ -34,6 +34,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var dispatchTimer: DispatchSourceTimer?
     private var usageLogWatcher: UsageLogWatcher?
     private var usageLogDebounceTask: Task<Void, Never>?
+    private var usageRefreshInFlight = false
+    private var usageRefreshQueued = false
     /// Held for the lifetime of the app to prevent Automatic Termination.
     private var backgroundActivity: NSObjectProtocol?
 
@@ -164,14 +166,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func startUsageLogWatcher() {
         let fm = FileManager.default
         let home = fm.homeDirectoryForCurrentUser.path
-        let candidates = [
+        var candidates = [
             ProcessInfo.processInfo.environment["CLAUDE_CONFIG_DIR"].map { "\($0)/projects" } ?? "\(home)/.claude/projects",
             "\(home)/Library/Application Support/Claude/local-agent-mode-sessions",
             ProcessInfo.processInfo.environment["CODEX_HOME"].map { "\($0)/sessions" } ?? "\(home)/.codex/sessions",
-            "\(home)/.cursor",
-            "\(home)/Library/Application Support/Cursor",
-            "\(home)/.local/share/opencode",
+            "\(home)/.cursor/projects",
+            "\(home)/Library/Application Support/Cursor/User/globalStorage/state.vscdb",
         ]
+        let opencodeDir = "\(home)/.local/share/opencode"
+        if let opencodeEntries = try? fm.contentsOfDirectory(atPath: opencodeDir) {
+            candidates.append(contentsOf: opencodeEntries
+                .filter { $0.hasPrefix("opencode") && $0.hasSuffix(".db") }
+                .map { "\(opencodeDir)/\($0)" })
+        }
         let paths = candidates.filter { fm.fileExists(atPath: $0) }
         guard !paths.isEmpty else { return }
 
@@ -188,8 +195,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         usageLogDebounceTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             guard !Task.isCancelled else { return }
-            self?.forceRefresh()
+            await self?.performUsageLogRefresh()
         }
+    }
+
+    private func performUsageLogRefresh() async {
+        if usageRefreshInFlight {
+            usageRefreshQueued = true
+            return
+        }
+
+        usageRefreshInFlight = true
+        repeat {
+            usageRefreshQueued = false
+            await store.refreshTodayBadge()
+            refreshStatusButton()
+        } while usageRefreshQueued
+        usageRefreshInFlight = false
     }
 
     private func rescheduleTimer(intervalSeconds: UInt64) {

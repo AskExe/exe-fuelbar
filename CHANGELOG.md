@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.30 (2026-05-21)
+
+### Fixes
+- Narrow macOS live-refresh file watching to actual usage stores instead of broad Cursor/OpenCode directories.
+- Coalesce usage-log refreshes so file-change bursts cannot spawn a continuous refresh loop.
+
 ## 0.2.29 (2026-05-19)
 
 ### Fixes
