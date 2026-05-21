@@ -12,6 +12,13 @@ const CLI_ENTRY = join(process.cwd(), 'src', 'cli.ts')
 const PERIODS = ['today', 'week', '30days', 'month', 'all'] as const
 type Period = (typeof PERIODS)[number]
 
+function localDateKey(date = new Date()): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function runCLI(
   period: Period,
   provider = 'all',
@@ -339,7 +346,7 @@ describe('CLI menubar-json E2E', { timeout: 60_000 }, () => {
       }
       if (history.daily.length === 0) return // no data today
 
-      const todayStr = new Date().toISOString().slice(0, 10)
+      const todayStr = localDateKey()
       const lastEntry = history.daily[history.daily.length - 1]!
       expect(lastEntry.date).toBe(todayStr)
     })

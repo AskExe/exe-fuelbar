@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 /// Upper bound on payload + stderr bytes read from the CLI. Real payloads top out near 500 KB
 /// (365 days of history with dozens of models); anything larger is pathological and truncating
@@ -104,12 +105,31 @@ struct DataClient {
 
     private static func runCLI(subcommand: [String], timeoutSeconds: UInt64 = spawnTimeoutSeconds) async throws -> ProcessResult {
         let process = ExeWatcherCLI.makeProcess(subcommand: subcommand)
-        let timeoutState = TimeoutState()
+        let tempDir = FileManager.default.temporaryDirectory
+        let token = UUID().uuidString
+        let stdoutURL = tempDir.appendingPathComponent("exe-watcher-\(token).stdout")
+        let stderrURL = tempDir.appendingPathComponent("exe-watcher-\(token).stderr")
 
-        let outPipe = Pipe()
-        let errPipe = Pipe()
-        process.standardOutput = outPipe
-        process.standardError = errPipe
+        FileManager.default.createFile(atPath: stdoutURL.path, contents: nil, attributes: [.posixPermissions: 0o600])
+        FileManager.default.createFile(atPath: stderrURL.path, contents: nil, attributes: [.posixPermissions: 0o600])
+
+        let stdoutHandle: FileHandle
+        let stderrHandle: FileHandle
+        do {
+            stdoutHandle = try FileHandle(forWritingTo: stdoutURL)
+            stderrHandle = try FileHandle(forWritingTo: stderrURL)
+        } catch {
+            throw DataClientError.spawn(error.localizedDescription)
+        }
+        defer {
+            try? stdoutHandle.close()
+            try? stderrHandle.close()
+            try? FileManager.default.removeItem(at: stdoutURL)
+            try? FileManager.default.removeItem(at: stderrURL)
+        }
+
+        process.standardOutput = stdoutHandle
+        process.standardError = stderrHandle
 
         do {
             try process.run()
@@ -117,69 +137,60 @@ struct DataClient {
             throw DataClientError.spawn(error.localizedDescription)
         }
 
-        // Drain both pipes concurrently so a large stderr can't deadlock stdout (the child
-        // blocks on write once the pipe buffer fills). `drain` also enforces a byte cap.
-        async let stdoutData = drain(outPipe.fileHandleForReading, limit: maxPayloadBytes)
-        async let stderrData = drain(errPipe.fileHandleForReading, limit: maxStderrBytes)
+        let didTimeOut = await waitForExitOrTimeout(process, timeoutSeconds: timeoutSeconds)
+        try? stdoutHandle.close()
+        try? stderrHandle.close()
 
-        // Wall-clock timeout: if the CLI hangs (parser stuck, disk stall), kill it.
-        let timeoutTask = Task.detached(priority: .utility) {
-            try? await Task.sleep(nanoseconds: timeoutSeconds * 1_000_000_000)
-            if process.isRunning {
-                timeoutState.markTimedOut()
-                process.terminate()
-            }
-        }
-        defer { timeoutTask.cancel() }
-
-        let (out, err) = await (stdoutData, stderrData)
-        process.waitUntilExit()
-
-        if timeoutState.read() {
+        if didTimeOut {
             throw DataClientError.timeout(seconds: timeoutSeconds)
         }
 
+        let out = try readFile(stdoutURL, limit: maxPayloadBytes)
         if out.count >= maxPayloadBytes {
             throw DataClientError.outputTooLarge
         }
 
+        let err = try readFile(stderrURL, limit: maxStderrBytes)
         let stderrString = String(data: err, encoding: .utf8) ?? ""
         return ProcessResult(stdout: out, stderr: stderrString, exitCode: process.terminationStatus)
     }
 
-    /// Pulls bytes off a pipe until EOF or `limit`. Intentionally uses `availableData`, which
-    /// returns empty on EOF -- no blocking once the child exits.
-    private static func drain(_ handle: FileHandle, limit: Int) async -> Data {
-        await Task.detached(priority: .utility) {
-            var buffer = Data()
-            while buffer.count < limit {
-                let chunk = handle.availableData
-                if chunk.isEmpty { break }
-                let remaining = limit - buffer.count
-                if chunk.count > remaining {
-                    buffer.append(chunk.prefix(remaining))
-                    break
-                }
-                buffer.append(chunk)
-            }
-            return buffer
-        }.value
-    }
-}
+    /// Redirecting stdout/stderr to temp files avoids the FileHandle.availableData hangs we saw
+    /// in the menubar process around day rollover. A child can write freely without filling a
+    /// pipe, while the app enforces a hard wall-clock timeout and then reads capped output.
+    private static func waitForExitOrTimeout(_ process: Process, timeoutSeconds: UInt64) async -> Bool {
+        let deadline = Date().addingTimeInterval(TimeInterval(timeoutSeconds))
+        while process.isRunning && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
 
-private final class TimeoutState: @unchecked Sendable {
-    private let lock = NSLock()
-    private var timedOut = false
+        if !process.isRunning {
+            process.waitUntilExit()
+            return false
+        }
 
-    func markTimedOut() {
-        lock.lock()
-        timedOut = true
-        lock.unlock()
+        process.terminate()
+        let terminateDeadline = Date().addingTimeInterval(1)
+        while process.isRunning && Date() < terminateDeadline {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        if process.isRunning {
+            kill(process.processIdentifier, SIGKILL)
+        }
+        process.waitUntilExit()
+        return true
     }
 
-    func read() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return timedOut
+    private static func readFile(_ url: URL, limit: Int) throws -> Data {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var data = Data()
+        while data.count < limit {
+            let chunk = handle.readData(ofLength: min(64 * 1024, limit - data.count))
+            if chunk.isEmpty { break }
+            data.append(chunk)
+        }
+        return data
     }
+
 }

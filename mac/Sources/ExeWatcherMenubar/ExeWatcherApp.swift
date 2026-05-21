@@ -31,7 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var popover: NSPopover!
     private let store = AppStore()
     let updateChecker = UpdateChecker()
-    private var dispatchTimer: DispatchSourceTimer?
+    private var refreshLoopTask: Task<Void, Never>?
     private var usageLogWatcher: UsageLogWatcher?
     private var usageLogDebounceTask: Task<Void, Never>?
     private var automaticRefreshInFlight = false
@@ -141,7 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        dispatchTimer?.cancel()
+        refreshLoopTask?.cancel()
         usageLogDebounceTask?.cancel()
         usageLogWatcher?.stop()
     }
@@ -219,16 +219,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     private func rescheduleTimer(intervalSeconds: UInt64) {
-        dispatchTimer?.cancel()
-        let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now() + .seconds(Int(intervalSeconds)), repeating: .seconds(Int(intervalSeconds)), leeway: .seconds(2))
-        timer.setEventHandler { [weak self] in
-            Task { @MainActor [weak self] in
+        refreshLoopTask?.cancel()
+        refreshLoopTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: intervalSeconds * 1_000_000_000)
+                guard !Task.isCancelled else { break }
                 await self?.performAutomaticRefresh(refreshSelectedPeriod: true)
             }
         }
-        timer.resume()
-        dispatchTimer = timer
     }
 
     private func observeStore() {

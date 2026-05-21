@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.35 (2026-05-22)
+
+### Fixes
+- Replace the menubar fallback DispatchSource timer with a MainActor async loop to eliminate Swift 6 executor crashes during automatic refresh.
+- Run CLI refreshes through capped temporary stdout/stderr files instead of blocking pipe drains so midnight/day-rollover refreshes cannot leave the popover stuck on "Loading Today…".
+
 ## 0.2.34 (2026-05-21)
 
 ### Fixes
