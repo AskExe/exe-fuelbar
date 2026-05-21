@@ -34,8 +34,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var dispatchTimer: DispatchSourceTimer?
     private var usageLogWatcher: UsageLogWatcher?
     private var usageLogDebounceTask: Task<Void, Never>?
-    private var usageRefreshInFlight = false
-    private var usageRefreshQueued = false
+    private var automaticRefreshInFlight = false
+    private var automaticRefreshQueued = false
     /// Held for the lifetime of the app to prevent Automatic Termination.
     private var backgroundActivity: NSObjectProtocol?
 
@@ -195,23 +195,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         usageLogDebounceTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             guard !Task.isCancelled else { return }
-            await self?.performUsageLogRefresh()
+            await self?.performAutomaticRefresh(refreshSelectedPeriod: false)
         }
     }
 
-    private func performUsageLogRefresh() async {
-        if usageRefreshInFlight {
-            usageRefreshQueued = true
+    private func performAutomaticRefresh(refreshSelectedPeriod: Bool) async {
+        if automaticRefreshInFlight {
+            automaticRefreshQueued = true
             return
         }
 
-        usageRefreshInFlight = true
+        automaticRefreshInFlight = true
         repeat {
-            usageRefreshQueued = false
+            automaticRefreshQueued = false
             await store.refreshTodayBadge()
             refreshStatusButton()
-        } while usageRefreshQueued
-        usageRefreshInFlight = false
+            let selected = store.selectedPeriod
+            if refreshSelectedPeriod && selected != .today {
+                await store.refreshQuietly(period: selected)
+            }
+        } while automaticRefreshQueued
+        automaticRefreshInFlight = false
     }
 
     private func rescheduleTimer(intervalSeconds: UInt64) {
@@ -219,14 +223,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let timer = DispatchSource.makeTimerSource(queue: .main)
         timer.schedule(deadline: .now() + .seconds(Int(intervalSeconds)), repeating: .seconds(Int(intervalSeconds)), leeway: .seconds(2))
         timer.setEventHandler { [weak self] in
-            guard let self = self else { return }
-            Task { @MainActor in
-                await self.store.refreshTodayBadge()
-                self.refreshStatusButton()
-                let selected = self.store.selectedPeriod
-                if selected != .today {
-                    await self.store.refreshQuietly(period: selected)
-                }
+            Task { @MainActor [weak self] in
+                await self?.performAutomaticRefresh(refreshSelectedPeriod: true)
             }
         }
         timer.resume()

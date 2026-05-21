@@ -115,6 +115,10 @@ final class AppStore {
         errorsByKey[currentOptimizeKey] ?? errorsByKey[currentBaseKey]
     }
 
+    var baseLastError: String? {
+        errorsByKey[currentBaseKey]
+    }
+
     var payload: MenubarPayload {
         mergedPayload(period: selectedPeriod, provider: selectedProvider) ?? .empty
     }
@@ -171,7 +175,7 @@ final class AppStore {
     /// True when a fetch error occurred or the CLI reported diagnostic warnings,
     /// indicating the displayed data may be stale or incomplete.
     var dataMayBeStale: Bool {
-        if lastError != nil { return true }
+        if baseLastError != nil { return true }
         if let diag = payload.diagnostics, !diag.warnings.isEmpty { return true }
         if let diag = selectedPeriodSummaryPayload?.diagnostics, !diag.warnings.isEmpty { return true }
         return false

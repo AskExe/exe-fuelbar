@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.34 (2026-05-21)
+
+### Fixes
+- Revert the background timer queue because Swift 6 MainActor isolation crashes when the timer closure is installed from the app delegate; keep the coalesced automatic refresh path on the main queue.
+
+## 0.2.33 (2026-05-21)
+
+### Fixes
+- Fix refresh timer crash by having the background timer post a main-thread notification instead of capturing MainActor app state from the timer queue.
+
+## 0.2.32 (2026-05-21)
+
+### Fixes
+- Fix v0.2.31 crash by hopping from the background refresh timer queue back to the main queue before touching MainActor app state.
+
+## 0.2.31 (2026-05-21)
+
+### Fixes
+- Move the fallback refresh timer off the main queue so the 30-second safety refresh is not delayed by popover/UI run-loop work.
+- Coalesce timer and file-watch refreshes through one automatic refresh path.
+- Do not show "Data may be stale" from an optimize-only error when the base usage payload is fresh.
+
 ## 0.2.30 (2026-05-21)
 
 ### Fixes
