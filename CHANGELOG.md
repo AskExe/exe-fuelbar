@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.37 (2026-05-23)
+
+### Fixes
+- Remove the indefinite animated loading overlay that could keep SwiftUI re-rendering NSImage content and make the menubar look crashed.
+- Cache the programmatically drawn owl icon so refreshes/loading states reuse one template image instead of rebuilding image representations during layout.
+
 ## 0.2.36 (2026-05-22)
 
 ### Fixes

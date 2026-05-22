@@ -7,14 +7,34 @@ struct OwlIcon: View {
     let size: CGFloat
 
     var body: some View {
-        Image(nsImage: Self.draw(size: size))
+        Image(nsImage: Self.cachedImage(size: size))
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: size, height: size)
     }
 
+    private static let cacheLock = NSLock()
+    private static var imageCache: [CGFloat: NSImage] = [:]
+
+    static func cachedImage(size: CGFloat) -> NSImage {
+        cacheLock.lock()
+        if let cached = imageCache[size] {
+            cacheLock.unlock()
+            return cached
+        }
+        cacheLock.unlock()
+
+        let image = draw(size: size)
+        image.isTemplate = true
+
+        cacheLock.lock()
+        imageCache[size] = image
+        cacheLock.unlock()
+        return image
+    }
+
     /// Draws the owl at the requested size using the same NSBezierPath approach as the menubar.
-    static func draw(size: CGFloat) -> NSImage {
+    private static func draw(size: CGFloat) -> NSImage {
         let s = size / 100.0
         let img = NSImage(size: NSSize(width: size, height: size), flipped: false) { _ in
             let fill = NSColor.black
@@ -207,7 +227,6 @@ private struct EmptyProviderState: View {
 /// and centers an animated owl icon pulsing with the brand palette.
 private struct BurnLoadingOverlay: View {
     let periodLabel: String
-    @State private var glowing: Bool = false
 
     private let iconSize: CGFloat = 48
 
@@ -217,25 +236,14 @@ private struct BurnLoadingOverlay: View {
                 .fill(.ultraThinMaterial)
 
             VStack(spacing: 14) {
-                ZStack {
-                    OwlIcon(size: iconSize)
-                        .foregroundStyle(.white.opacity(glowing ? 0.5 : 0.2))
-                        .blur(radius: glowing ? 12 : 5)
-
-                    OwlIcon(size: iconSize)
-                        .foregroundStyle(.white)
-                        .opacity(glowing ? 1.0 : 0.6)
-                }
-                .frame(width: iconSize, height: iconSize)
+                OwlIcon(size: iconSize)
+                    .foregroundStyle(.white)
+                    .opacity(0.82)
+                    .frame(width: iconSize, height: iconSize)
 
                 Text("Loading \(periodLabel)…")
                     .font(.system(size: 11.5, weight: .medium))
                     .foregroundStyle(.secondary)
-            }
-        }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                glowing = true
             }
         }
     }
