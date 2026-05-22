@@ -195,7 +195,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         usageLogDebounceTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             guard !Task.isCancelled else { return }
-            await self?.performAutomaticRefresh(refreshSelectedPeriod: false)
+            // Do not await from the debounce task. Popover/timer reschedules cancel debounce
+            // tasks, and cancellation during an in-flight refresh used to strand
+            // automaticRefreshInFlight=true until the user clicked manual Refresh.
+            Task { @MainActor [weak self] in
+                await self?.performAutomaticRefresh(refreshSelectedPeriod: false)
+            }
         }
     }
 
@@ -206,6 +211,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
 
         automaticRefreshInFlight = true
+        defer { automaticRefreshInFlight = false }
+
         repeat {
             automaticRefreshQueued = false
             await store.refreshTodayBadge()
@@ -215,7 +222,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 await store.refreshQuietly(period: selected)
             }
         } while automaticRefreshQueued
-        automaticRefreshInFlight = false
     }
 
     private func rescheduleTimer(intervalSeconds: UInt64) {
@@ -224,7 +230,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: intervalSeconds * 1_000_000_000)
                 guard !Task.isCancelled else { break }
-                await self?.performAutomaticRefresh(refreshSelectedPeriod: true)
+                // Fire the refresh in its own MainActor task so rescheduling the timer cannot
+                // cancel a refresh that is already updating the badge.
+                Task { @MainActor [weak self] in
+                    await self?.performAutomaticRefresh(refreshSelectedPeriod: true)
+                }
             }
         }
     }

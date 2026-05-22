@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.36 (2026-05-22)
+
+### Fixes
+- Keep automatic badge refreshes alive after timer/popover reschedules by preventing cancellation from stranding the refresh coalescing lock.
+- Run timer and file-watch refreshes as independent MainActor tasks so the menu bar stays current without manual Refresh even hours later.
+
 ## 0.2.35 (2026-05-22)
 
 ### Fixes
