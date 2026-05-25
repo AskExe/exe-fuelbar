@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.38 (2026-05-25)
+
+### Fixes
+- Refresh the full visible popover selection after wake, screen wake, unlock, and popover open instead of refreshing only the Today/All badge.
+- Stop showing the first-load loading overlay when no fetch is actually in flight, preventing post-lock blank/loading states from lasting until manual Refresh.
+- Recover from lock/sleep while a CLI scan is in flight by clearing stale refresh guards on resume and ignoring pre-resume results, preventing the menubar/popover from getting stuck on "Loading".
+
 ## 0.2.37 (2026-05-23)
 
 ### Fixes

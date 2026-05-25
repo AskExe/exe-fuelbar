@@ -454,6 +454,44 @@ struct AppStoreProviderPrefetchTests {
         await gate.open()
     }
 
+    @Test("system resume clears stale in-flight guards and ignores pre-resume fetch results")
+    @MainActor
+    func systemResumeRecoversFromStuckLoading() async throws {
+        let gate = Gate()
+        let weekFetchCount = CallCounter()
+
+        let store = AppStore(
+            fetchPayload: { period, provider, includeOptimize in
+                if period == .sevenDays && provider == .all && !includeOptimize {
+                    let value = await weekFetchCount.next()
+                    if value == 1 {
+                        // Simulate a CLI scan that was in progress when the Mac locked/slept.
+                        await gate.wait()
+                        return makePayload(label: "Stale Week", cost: 99, providers: ["claude": 99])
+                    }
+                    return makePayload(label: "Fresh Week", cost: 42, providers: ["claude": 42])
+                }
+                return makePayload(label: period.rawValue, cost: 1, providers: [:])
+            }
+        )
+
+        await store.switchTo(period: .sevenDays)
+        try await Task.sleep(nanoseconds: 10_000_000)
+        #expect(store.isCurrentSelectionLoading)
+
+        store.recoverFromSystemResume()
+        #expect(!store.isCurrentSelectionLoading)
+        #expect(store.activeFetchCount == 0)
+
+        await store.refreshVisibleSelection()
+        #expect(await weekFetchCount.value() == 2)
+        #expect(store.payload.current.cost == 42)
+
+        await gate.open()
+        try await Task.sleep(nanoseconds: 50_000_000)
+        #expect(store.payload.current.cost == 42)
+    }
+
     @Test("a failed historical fetch does not contaminate the cached today view")
     @MainActor
     func historicalFailureDoesNotLeakIntoToday() async throws {

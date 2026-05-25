@@ -185,7 +185,7 @@ struct MenuBarContent: View {
 
     private var showInitialLoadingOverlay: Bool {
         guard !store.hasCachedData && store.payload.generated.isEmpty else { return false }
-        return store.isCurrentSelectionLoading || store.lastError == nil
+        return store.isCurrentSelectionLoading
     }
 
     private var showFirstLoadError: Bool {

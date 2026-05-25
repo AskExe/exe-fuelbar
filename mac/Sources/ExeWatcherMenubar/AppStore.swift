@@ -63,6 +63,10 @@ final class AppStore {
     private var pendingKeys: Set<PayloadCacheKey> = []
     /// Handle to the most recent prefetch Task so we can cancel it before spawning a new one.
     private var activePrefetchTask: Task<Void, Never>?
+    /// Incremented when macOS resumes/unlocks and we intentionally discard stale in-flight
+    /// bookkeeping. Fetches that started before the generation changed are ignored on return so
+    /// a pre-lock CLI scan cannot overwrite the fresh post-unlock payload.
+    private var refreshGeneration: UInt64 = 0
 
     init(
         fetchPayload: @escaping MenubarPayloadFetcher = DataClient.fetch,
@@ -201,6 +205,30 @@ final class AppStore {
         }
     }
 
+    /// Refresh the visible popover selection. Wake/unlock and popover-open paths must hydrate
+    /// the selected provider/period, not just the always-visible Today/All badge; otherwise a
+    /// stale provider tab can sit on the first-load loading overlay until manual Refresh.
+    func refreshVisibleSelection() async {
+        await refreshForSelectionInBackground(period: selectedPeriod, provider: selectedProvider)
+    }
+
+    /// macOS can freeze/suspend the accessory app while a CLI scan is in progress during lock or
+    /// sleep. On unlock that old async task may never make it back through our normal defer path,
+    /// leaving `badgeInFlight` or `inFlightKeys` stuck forever. The visible symptom is exactly the
+    /// unacceptable one: menubar numbers disappear and the popover says "Loading …" indefinitely.
+    ///
+    /// Treat unlock/wake as a new refresh generation: clear stale in-flight guards, cancel
+    /// speculative prefetch, and ignore any old fetch that eventually returns.
+    func recoverFromSystemResume() {
+        refreshGeneration &+= 1
+        badgeInFlight = false
+        inFlightKeys.removeAll()
+        pendingKeys.removeAll()
+        activeFetchCount = 0
+        activePrefetchTask?.cancel()
+        activePrefetchTask = nil
+    }
+
     private var inFlightKeys: Set<PayloadCacheKey> = []
 
     /// Refresh the currently selected (period, provider) combination. Guards against concurrent
@@ -221,14 +249,21 @@ final class AppStore {
         // Badge uses its own dedicated fetch slot — never blocked by detail/prefetch fetches.
         guard !badgeInFlight else { return }
         badgeInFlight = true
-        defer { badgeInFlight = false }
+        let generation = refreshGeneration
+        defer {
+            if generation == refreshGeneration {
+                badgeInFlight = false
+            }
+        }
         do {
             let fresh = try await fetchPayload(target.period, target.provider, false)
+            guard generation == refreshGeneration else { return }
             cache[target] = CachedPayload(payload: fresh, fetchedAt: now())
             errorsByKey[target] = nil
             lastBadgeRefreshSuccessAt = now()
             lastBadgeRefreshError = nil
         } catch {
+            guard generation == refreshGeneration else { return }
             let desc = Self.describe(error: error)
             errorsByKey[target] = desc
             lastBadgeRefreshError = desc
@@ -245,24 +280,31 @@ final class AppStore {
         }
         inFlightKeys.insert(key)
         activeFetchCount += 1
+        let generation = refreshGeneration
         // Clear stale error on retry start so the UI shows "loading" instead of a stale error.
         errorsByKey[key] = nil
         defer {
-            inFlightKeys.remove(key)
-            activeFetchCount = max(0, activeFetchCount - 1)
-            // Drain pending: if someone queued a refresh while we were in-flight, fire it now.
-            if pendingKeys.remove(key) != nil {
-                Task { @MainActor in
-                    await self.refreshKey(key, includeOptimize: includeOptimize)
+            if generation == refreshGeneration {
+                inFlightKeys.remove(key)
+                activeFetchCount = max(0, activeFetchCount - 1)
+                // Drain pending: if someone queued a refresh while we were in-flight, fire it now.
+                if pendingKeys.remove(key) != nil {
+                    Task { @MainActor in
+                        await self.refreshKey(key, includeOptimize: includeOptimize)
+                    }
                 }
+            } else {
+                activeFetchCount = max(0, activeFetchCount - 1)
             }
         }
         do {
             let fresh = try await fetchPayload(key.period, key.provider, includeOptimize)
+            guard generation == refreshGeneration else { return false }
             cache[key] = CachedPayload(payload: fresh, fetchedAt: now())
             errorsByKey[key] = nil
             return true
         } catch {
+            guard generation == refreshGeneration else { return false }
             errorsByKey[key] = Self.describe(error: error)
             NSLog("Exe Watcher: fetch failed for \(key.period.rawValue)/\(key.provider.rawValue): \(error)")
             return false

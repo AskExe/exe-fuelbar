@@ -78,6 +78,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         ) { [weak self] _ in
             Task { @MainActor in self?.forceRefresh() }
         }
+
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.sessionDidBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.forceRefresh() }
+        }
     }
 
     /// Removes the legacy LaunchAgent plist that older versions installed. The redundant
@@ -112,7 +120,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func forceRefresh() {
         Task {
+            store.recoverFromSystemResume()
             await store.refreshTodayBadge()
+            await store.refreshVisibleSelection()
             refreshStatusButton()
         }
     }
@@ -344,6 +354,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     func popoverWillShow(_ notification: Notification) {
         Task {
             await store.refreshTodayBadge()
+            await store.refreshVisibleSelection()
             refreshStatusButton()
         }
         rescheduleTimer(intervalSeconds: refreshIntervalSeconds)
