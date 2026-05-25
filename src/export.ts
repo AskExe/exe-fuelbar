@@ -17,7 +17,9 @@ type Row = Record<string, string | number>
 
 function rowsToCsv(rows: Row[]): string {
   if (rows.length === 0) return ''
-  const headers = Object.keys(rows[0])
+  const firstRow = rows[0]
+  if (!firstRow) return ''
+  const headers = Object.keys(firstRow)
   const lines = [headers.map(escCsv).join(',')]
   for (const row of rows) {
     lines.push(headers.map(h => escCsv(String(row[h] ?? ''))).join(','))

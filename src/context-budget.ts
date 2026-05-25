@@ -136,7 +136,9 @@ export async function discoverProjectCwd(sessionDir: string): Promise<string | n
     files = (await readdir(sessionDir)).filter(f => f.endsWith('.jsonl'))
   } catch { return null }
   if (files.length === 0) return null
-  const content = await readSessionFile(join(sessionDir, files[0]))
+  const firstFile = files[0]
+  if (!firstFile) return null
+  const content = await readSessionFile(join(sessionDir, firstFile))
   if (content === null) return null
   for (const line of content.split('\n')) {
     if (!line.trim()) continue

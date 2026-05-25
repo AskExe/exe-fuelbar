@@ -116,7 +116,7 @@ describe('menubar-installer', () => {
         assets: [
           {
             name: 'ExeWatcherMenubar-v0.1.1.zip',
-            browser_download_url: 'https://example.com/fake.zip',
+            browser_download_url: 'https://github.com/AskExe/exe-watcher/releases/download/v0.2.21/fake.zip',
           },
         ],
       }
@@ -204,7 +204,7 @@ describe('menubar-installer', () => {
         assets: [
           {
             name: 'ExeWatcherMenubar-v0.2.21.zip',
-            browser_download_url: 'https://example.com/fake.zip',
+            browser_download_url: 'https://github.com/AskExe/exe-watcher/releases/download/v0.2.21/fake.zip',
           },
         ],
       }
@@ -259,7 +259,7 @@ describe('menubar-installer', () => {
           ok: true,
           json: async () => ({
             tag_name: 'v0.2.21',
-            assets: [{ name: 'ExeWatcherMenubar-v0.2.21.zip', browser_download_url: 'https://example.com/fake.zip' }],
+            assets: [{ name: 'ExeWatcherMenubar-v0.2.21.zip', browser_download_url: 'https://github.com/AskExe/exe-watcher/releases/download/v0.2.21/fake.zip' }],
           }),
         } as unknown as Response)
         .mockResolvedValueOnce({

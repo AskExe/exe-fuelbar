@@ -22,8 +22,26 @@ import type { OptimizeResult } from './optimize.js'
 import type { ProjectSummary } from './types.js'
 import type { DailyEntry } from './daily-cache.js'
 import { readdirSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { homedir } from 'os'
+import { fileURLToPath } from 'url'
+
+/** Read CLI version from package.json at build/runtime. */
+function getCliVersion(): string {
+  try {
+    const pkgPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json')
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { version?: string }
+    return pkg.version ?? '0.0.0'
+  } catch {
+    return '0.0.0'
+  }
+}
+
+/**
+ * Minimum menubar app version required for this CLI's JSON schema.
+ * Bump when MenubarPayload shape changes in a breaking way.
+ */
+const MIN_APP_VERSION = '0.2.40'
 
 const TOP_ACTIVITIES_LIMIT = 20
 const TOP_MODELS_LIMIT = 20
@@ -58,6 +76,8 @@ export type DiagnosticsBlock = {
 
 export type MenubarPayload = {
   generated: string
+  cliVersion: string
+  minAppVersion: string
   current: {
     label: string
     cost: number
@@ -300,6 +320,7 @@ function extractAgentFromProject(dirName: string): string {
   const matches = [...dirName.matchAll(/--worktrees-([a-zA-Z][a-zA-Z0-9]*)/g)]
   if (matches.length === 0) return 'user'
   const lastMatch = matches[matches.length - 1]
+  if (!lastMatch?.[1]) return 'user'
   return lastMatch[1].toLowerCase()
 }
 
@@ -388,6 +409,8 @@ export function buildMenubarPayload(
 ): MenubarPayload {
   return {
     generated: new Date().toISOString(),
+    cliVersion: getCliVersion(),
+    minAppVersion: MIN_APP_VERSION,
     current: {
       label: current.label,
       cost: current.cost,

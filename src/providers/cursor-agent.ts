@@ -373,7 +373,7 @@ export function createCursorAgentProvider(baseDirOverride?: string): Provider {
     displayName: 'Cursor Agent',
 
     modelDisplayName(model: string): string {
-      if (model === 'default') return modelDisplayNames.default
+      if (model === 'default') return modelDisplayNames['default'] ?? 'Auto (Sonnet est.)'
       const label = modelDisplayNames[model] ?? model
       return `${label} (est.)`
     },

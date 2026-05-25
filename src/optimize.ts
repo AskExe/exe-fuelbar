@@ -193,7 +193,8 @@ async function runWithConcurrency<T>(
   async function next(): Promise<void> {
     while (idx < items.length) {
       const current = idx++
-      await worker(items[current])
+      const item = items[current]
+      if (item !== undefined) await worker(item)
     }
   }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => next()))
@@ -581,7 +582,7 @@ export function detectBloatedClaudeMd(projectCwds: Set<string>): WasteFinding | 
   return {
     title: `Your CLAUDE.md is too long`,
     explanation: `${list}. CLAUDE.md plus all @-imported files load into every API call. Trimming below ${CLAUDEMD_HEALTHY_LINES} lines saves ~${formatTokens(tokensSaved)} tokens per call.`,
-    impact: worst.expandedLines > CLAUDEMD_HIGH_THRESHOLD_LINES ? 'high' : 'medium',
+    impact: (worst?.expandedLines ?? 0) > CLAUDEMD_HIGH_THRESHOLD_LINES ? 'high' : 'medium',
     tokensSaved,
     fix: {
       type: 'paste',
@@ -662,7 +663,7 @@ export function detectCacheBloat(apiCalls: ApiCallMeta[], projects: ProjectSumma
   const baseline = computeBudgetAwareCacheBaseline(projects)
   const bloatThreshold = baseline * CACHE_BLOAT_MULTIPLIER
 
-  if (median < bloatThreshold) return null
+  if (median === undefined || median < bloatThreshold) return null
 
   const recentCalls = apiCalls.filter(c => c.recent)
   const totalBloated = apiCalls.filter(c => c.cacheCreationTokens > bloatThreshold).length
@@ -688,16 +689,16 @@ export function detectCacheBloat(apiCalls: ApiCallMeta[], projects: ProjectSumma
 
   let versionNote = ''
   if (versionAvgs.length >= 2) {
-    const [high, ...rest] = versionAvgs
-    const low = rest[rest.length - 1]
-    if (high.avg - low.avg > CACHE_VERSION_DIFF_THRESHOLD) {
+    const high = versionAvgs[0]
+    const low = versionAvgs[versionAvgs.length - 1]
+    if (high && low && high.avg - low.avg > CACHE_VERSION_DIFF_THRESHOLD) {
       versionNote = ` Version ${high.version} averages ${formatTokens(high.avg)} vs ${low.version} at ${formatTokens(low.avg)}.`
     }
   }
 
   return {
     title: 'Session warmup is unusually large',
-    explanation: `Median cache_creation per call is ${formatTokens(median)} tokens, about ${formatTokens(excess)} above your baseline of ${formatTokens(baseline)}.${versionNote}`,
+    explanation: `Median cache_creation per call is ${formatTokens(median ?? 0)} tokens, about ${formatTokens(excess)} above your baseline of ${formatTokens(baseline)}.${versionNote}`,
     impact: excess > CACHE_EXCESS_HIGH_THRESHOLD ? 'high' : 'medium',
     tokensSaved,
     fix: {
@@ -828,7 +829,7 @@ function readShellProfileLimit(): number | null {
     const content = readSessionFileSync(path)
     if (content === null) continue
     const match = content.match(/^\s*export\s+BASH_MAX_OUTPUT_LENGTH\s*=\s*['"]?(\d+)['"]?/m)
-    if (match) return parseInt(match[1], 10)
+    if (match?.[1]) return parseInt(match[1], 10)
   }
   return null
 }
@@ -1107,7 +1108,8 @@ function renderOptimize(
   lines.push('')
 
   for (let i = 0; i < findings.length; i++) {
-    lines.push(...renderFinding(i + 1, findings[i], costRate))
+    const finding = findings[i]
+    if (finding) lines.push(...renderFinding(i + 1, finding, costRate))
   }
 
   lines.push(chalk.hex(DIM)('  ' + SEP.repeat(PANEL_WIDTH)))

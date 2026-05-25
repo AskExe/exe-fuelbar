@@ -79,6 +79,14 @@ async function fetchLatestReleaseAsset(): Promise<ReleaseAsset> {
       `Check https://github.com/AskExe/exe-watcher/releases.`
     )
   }
+  // Validate download URL points to GitHub-owned domains to prevent supply-chain attacks.
+  const allowedPrefixes = ['https://github.com/', 'https://objects.githubusercontent.com/']
+  if (!allowedPrefixes.some(prefix => asset.browser_download_url.startsWith(prefix))) {
+    throw new Error(
+      `Untrusted download URL: ${asset.browser_download_url}. ` +
+      `Expected a GitHub-hosted asset URL.`
+    )
+  }
   return asset
 }
 

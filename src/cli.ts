@@ -391,12 +391,12 @@ program
         const hadYesterday = c.days.some(d => d.date >= yesterdayStr)
         if (hadYesterday) {
           const freshDays = c.days.filter(d => d.date < yesterdayStr)
-          const latestFresh = freshDays.length > 0 ? freshDays[freshDays.length - 1].date : null
+          const latestFresh = freshDays.length > 0 ? freshDays[freshDays.length - 1]?.date ?? null : null
           c = { ...c, days: freshDays, lastComputedDate: latestFresh }
         }
 
         // --- FORWARD GAP: fill from lastComputedDate through yesterday ---
-        const oldestCachedDate = c.days.length > 0 ? c.days[0].date : null
+        const oldestCachedDate = c.days.length > 0 ? c.days[0]?.date ?? null : null
         const effectiveGapStart = computeProgressiveBackfillStart({
           lastComputedDate: c.lastComputedDate,
           oldestCachedDate,
@@ -425,7 +425,7 @@ program
         // --- BACKWARD GAP: if the forward fill ran but the cache still doesn't reach
         // far enough back for the requested period, fill backward now. Without this,
         // the forward gap (yesterday re-eviction) blocks backward fills indefinitely. ---
-        const updatedOldest = c.days.length > 0 ? c.days[0].date : null
+        const updatedOldest = c.days.length > 0 ? (c.days[0]?.date ?? null) : null
         const neededStart = new Date(todayStart.getTime() - (selectedPeriodHistoryDays - 1) * MS_PER_DAY)
         const fullBackfillStart = new Date(todayStart.getTime() - BACKFILL_DAYS * MS_PER_DAY)
         const clampedNeeded = neededStart < fullBackfillStart ? fullBackfillStart : neededStart
