@@ -308,10 +308,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             string: valueText,
             attributes: [.font: font, .foregroundColor: color]
         )
-        // Force immediate redraw. NSStatusItem sometimes defers the status bar paint for an
-        // accessory app that is not foreground, so the label visually freezes until the user
-        // opens the popover (which triggers NSApp.activate + a forced redraw cycle).
+        // Force the menu bar to repaint immediately. For accessory apps (LSUIElement), setting
+        // needsDisplay + display() only draws into the button's backing store — the system-owned
+        // menu bar window won't composite the update until something nudges WindowServer.
+        // Toggling the status item length forces a layout pass that makes the fresh content
+        // visible without requiring user interaction.
         button.needsDisplay = true
+        let currentLength = statusItem.length
+        statusItem.length = currentLength == NSStatusItem.variableLength
+            ? currentLength : NSStatusItem.variableLength
+        statusItem.length = currentLength
         button.display()
     }
 
