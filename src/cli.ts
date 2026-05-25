@@ -770,9 +770,10 @@ program
   .command('menubar')
   .description('Install and launch the macOS menubar app (one command, no clone)')
   .option('--force', 'Reinstall even if an older copy is already in ~/Applications')
-  .action(async (opts: { force?: boolean }) => {
+  .option('--version <semver>', 'Install a specific release version (e.g. v0.2.38) instead of latest')
+  .action(async (opts: { force?: boolean; version?: string }) => {
     try {
-      const result = await installMenubarApp({ force: opts.force })
+      const result = await installMenubarApp({ force: opts.force, version: opts.version })
       console.log(`\n  Ready. ${result.installedPath}\n`)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
@@ -1069,6 +1070,8 @@ program
 
 // Default action: install menubar app on macOS when no subcommand given
 if (process.argv.length <= 2 && process.platform === 'darwin') {
+  console.log('\n  No subcommand given — installing/launching the macOS menubar app.')
+  console.log('  Use `exe-watcher --help` to see all available commands.\n')
   installMenubarApp().then(result => {
     console.log(`\n  Installed: ${result.installedPath}`)
     if (result.launched) console.log('  Launched.')

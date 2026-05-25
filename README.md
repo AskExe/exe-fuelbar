@@ -42,7 +42,10 @@ npm install -g exe-watcher
 ```bash
 exe-watcher menubar            # install + launch
 exe-watcher menubar --force    # reinstall latest
+exe-watcher                    # on macOS: same as `menubar` (auto-installs)
 ```
+
+> **Note:** Running `exe-watcher` with no subcommand on macOS automatically installs and launches the menubar app. Use `exe-watcher --help` to see all available commands.
 
 A Swift/SwiftUI popover that lives in your menu bar. Today's spend is always visible at a glance.
 
@@ -226,12 +229,12 @@ Two components, loosely coupled via CLI output:
 
 ## Test suite
 
-638 tests across 3 layers:
+648 tests across 3 layers:
 
 | Layer | Framework | Count | What it covers |
 |-------|-----------|-------|----------------|
-| **CLI data integrity** | Vitest | 595 | Schema validation, provider sum consistency, period monotonicity, project spend accuracy, 365-day history, token sanity checks |
-| **Swift state** | Swift Testing | 37 | Period windowing, cache isolation, prefetch logic, capacity estimation, CLI resolution, provider sum validation, JSON decode |
+| **CLI data integrity** | Vitest | 597 | Schema validation, provider sum consistency, period monotonicity, project spend accuracy, 365-day history, token sanity checks |
+| **Swift state** | Swift Testing | 45 | Period windowing, cache isolation, prefetch logic, capacity estimation, CLI resolution, provider sum validation, JSON decode |
 | **UI smoke** | Swift Testing + Accessibility | 6 | App launch, status item presence, popover display, period switching via macOS Accessibility APIs |
 
 ```bash
@@ -326,7 +329,7 @@ Watcher is forked from [codeburn](https://github.com/getagentseal/codeburn) by [
 - Daily cache system (v6) with atomic writes and cold-start/progressive 365-day backfill
 - Capacity estimation from usage patterns
 - Multi-currency support (17 currencies)
-- 638-test suite across CLI, Swift state, and UI smoke layers
+- 648-test suite across CLI, Swift state, and UI smoke layers
 - Consolidated activity categories from 13 to 6
 - Fixed double-counting bugs in the menubar JSON pipeline
 - Performance: 7-day and 30-day queries from 2-5s down to ~1s via daily cache

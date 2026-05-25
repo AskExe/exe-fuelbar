@@ -8,7 +8,8 @@ import { Readable } from 'node:stream'
 
 /// Public GitHub repo that hosts signed macOS release builds. `/releases/latest` returns the
 /// newest tagged release; we filter its assets list for our zipped .app bundle.
-const RELEASE_API = 'https://api.github.com/repos/AskExe/exe-watcher/releases/latest'
+const RELEASE_API_LATEST = 'https://api.github.com/repos/AskExe/exe-watcher/releases/latest'
+const RELEASE_API_BY_TAG = 'https://api.github.com/repos/AskExe/exe-watcher/releases/tags/'
 const APP_BUNDLE_NAME = 'Watcher by EXE.app'
 const ASSET_PATTERN = /^ExeWatcherMenubar-.*\.zip$/
 const APP_PROCESS_NAME = 'ExeWatcherMenubar'
@@ -60,8 +61,11 @@ async function sysProductVersion(): Promise<string> {
   })
 }
 
-async function fetchLatestReleaseAsset(): Promise<ReleaseAsset> {
-  const response = await fetch(RELEASE_API, {
+async function fetchLatestReleaseAsset(version?: string): Promise<ReleaseAsset> {
+  // If a specific version is requested, fetch that tag; otherwise use /releases/latest.
+  const tag = version ? (version.startsWith('mac-') ? version : `mac-${version.startsWith('v') ? version : `v${version}`}`) : undefined
+  const url = tag ? `${RELEASE_API_BY_TAG}${tag}` : RELEASE_API_LATEST
+  const response = await fetch(url, {
     headers: {
       // Identify the installer so GitHub's abuse heuristics treat us as a known client.
       'User-Agent': 'exe-watcher-installer',
@@ -197,7 +201,7 @@ async function killRunningApp(): Promise<void> {
   }
 }
 
-export async function installMenubarApp(options: { force?: boolean } = {}): Promise<InstallResult> {
+export async function installMenubarApp(options: { force?: boolean; version?: string } = {}): Promise<InstallResult> {
   await ensureSupportedPlatform()
 
   const appsDir = userApplicationsDir()
@@ -211,8 +215,10 @@ export async function installMenubarApp(options: { force?: boolean } = {}): Prom
     return { installedPath: targetPath, launched: true }
   }
 
-  console.log('Looking up the latest Exe Watcher Menubar release...')
-  const asset = await fetchLatestReleaseAsset()
+  console.log(options.version
+    ? `Looking up Exe Watcher Menubar release ${options.version}...`
+    : 'Looking up the latest Exe Watcher Menubar release...')
+  const asset = await fetchLatestReleaseAsset(options.version)
 
   const stagingDir = await mkdtemp(join(tmpdir(), 'exe-watcher-menubar-'))
   try {
