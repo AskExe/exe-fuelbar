@@ -335,27 +335,46 @@ private struct UpdateBadge: View {
     @Environment(UpdateChecker.self) private var updateChecker
 
     var body: some View {
-        Button {
-            updateChecker.performUpdate()
-        } label: {
-            HStack(spacing: 4) {
-                if updateChecker.isUpdating {
-                    ProgressView()
-                        .controlSize(.mini)
-                        .scaleEffect(0.7)
+        VStack(spacing: 2) {
+            Button {
+                if updateChecker.updateError != nil && !updateChecker.isUpdating {
+                    // Retry the update check when tapping after an error
+                    Task { await updateChecker.check() }
                 } else {
-                    Image(systemName: "arrow.down.circle.fill")
-                        .font(.system(size: 10))
+                    updateChecker.performUpdate()
                 }
-                Text(updateChecker.isUpdating ? "Updating..." : "Update")
-                    .font(.system(size: 10, weight: .medium))
+            } label: {
+                HStack(spacing: 4) {
+                    if updateChecker.isUpdating {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .scaleEffect(0.7)
+                    } else if updateChecker.updateError != nil {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.orange)
+                    } else {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: 10))
+                    }
+                    Text(updateChecker.isUpdating ? "Updating..." : updateChecker.updateError != nil ? "Retry" : "Update")
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .goldButton()
+            .controlSize(.mini)
+            .disabled(updateChecker.isUpdating)
+
+            if let error = updateChecker.updateError {
+                Text(error)
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
         }
-        .goldButton()
-        .controlSize(.mini)
-        .disabled(updateChecker.isUpdating)
     }
 }
 

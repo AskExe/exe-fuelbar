@@ -107,6 +107,8 @@ final class AppStore {
             let body = optimizedPayload.fetchedAt >= basePayload.fetchedAt ? optimizedPayload.payload : basePayload.payload
             return MenubarPayload(
                 generated: body.generated,
+                cliVersion: body.cliVersion,
+                minAppVersion: body.minAppVersion,
                 current: body.current,
                 optimize: optimizedPayload.payload.optimize,
                 history: body.history,

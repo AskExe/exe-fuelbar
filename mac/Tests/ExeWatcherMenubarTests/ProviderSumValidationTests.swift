@@ -11,6 +11,8 @@ struct ProviderSumValidationTests {
 
         let payload = MenubarPayload(
             generated: "2026-05-07T00:00:00Z",
+            cliVersion: nil,
+            minAppVersion: nil,
             current: CurrentBlock(
                 label: "Today",
                 cost: total,
@@ -43,6 +45,8 @@ struct ProviderSumValidationTests {
 
         let payload = MenubarPayload(
             generated: "2026-05-07T00:00:00Z",
+            cliVersion: nil,
+            minAppVersion: nil,
             current: CurrentBlock(
                 label: "Today",
                 cost: 50,
@@ -74,6 +78,8 @@ struct ProviderSumValidationTests {
     func emptyProvidersDict() {
         let payload = MenubarPayload(
             generated: "2026-05-07T00:00:00Z",
+            cliVersion: nil,
+            minAppVersion: nil,
             current: CurrentBlock(
                 label: "Today",
                 cost: 0,

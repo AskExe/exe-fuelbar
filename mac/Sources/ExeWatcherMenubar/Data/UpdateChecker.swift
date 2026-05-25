@@ -49,15 +49,26 @@ final class UpdateChecker {
                 $0.name.hasPrefix("ExeWatcherMenubar-") && $0.name.hasSuffix(".zip")
             }) else { return }
 
+            // Validate download URL to prevent supply-chain attacks via compromised API responses.
+            let allowedPrefixes = ["https://github.com/", "https://objects.githubusercontent.com/"]
+            guard allowedPrefixes.contains(where: { asset.browser_download_url.hasPrefix($0) }) else {
+                let msg = "Untrusted download URL: \(asset.browser_download_url)"
+                NSLog("Exe Watcher: %@", msg)
+                updateError = msg
+                return
+            }
+
             let version = asset.name
                 .replacingOccurrences(of: "ExeWatcherMenubar-", with: "")
                 .replacingOccurrences(of: ".zip", with: "")
 
             latestVersion = version
+            updateError = nil
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastCheckKey)
             UserDefaults.standard.set(version, forKey: cachedVersionKey)
         } catch {
             NSLog("Exe Watcher: update check failed: \(error)")
+            updateError = "Update check failed — tap to retry"
         }
     }
 

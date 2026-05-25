@@ -20,6 +20,7 @@ enum DataClientError: Error {
     case decode(Error)
     case timeout(seconds: UInt64 = 60)
     case outputTooLarge
+    case appTooOld(required: String, current: String)
 }
 
 extension DataClientError: LocalizedError {
@@ -49,6 +50,8 @@ extension DataClientError: LocalizedError {
             return "exe-watcher timed out after \(seconds) seconds. Retry once the machine is idle."
         case .outputTooLarge:
             return "Watcher received an unexpectedly large CLI response and refused to render it."
+        case let .appTooOld(required, current):
+            return "This app (v\(current)) is too old for the installed CLI. Update to v\(required)+ via the menubar or reinstall."
         }
     }
 }
@@ -73,6 +76,20 @@ struct DataClient {
             payload = try JSONDecoder().decode(MenubarPayload.self, from: result.stdout)
         } catch {
             throw DataClientError.decode(error)
+        }
+
+        // Version compatibility gate: if the CLI declares a minimum app version that's
+        // newer than ours, surface an actionable error instead of rendering stale/broken data.
+        if let minRequired = payload.minAppVersion {
+            let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+            let normalizedRequired = minRequired.hasPrefix("v") ? String(minRequired.dropFirst()) : minRequired
+            let normalizedCurrent = current.hasPrefix("v") ? String(current.dropFirst()) : current
+            if !normalizedCurrent.isEmpty
+                && normalizedCurrent != "dev"
+                && normalizedRequired.compare(normalizedCurrent, options: .numeric) == .orderedDescending
+            {
+                throw DataClientError.appTooOld(required: normalizedRequired, current: normalizedCurrent)
+            }
         }
 
         if let diag = payload.diagnostics, !diag.warnings.isEmpty {

@@ -9,6 +9,8 @@ private func makePayload(
 ) -> MenubarPayload {
     MenubarPayload(
         generated: "2026-05-07T00:00:00Z",
+            cliVersion: nil,
+            minAppVersion: nil,
         current: CurrentBlock(
             label: label,
             cost: cost,
