@@ -80,8 +80,10 @@ enum ExeWatcherCLI {
         }
 
         process.environment = environment
-        // Use .utility so macOS can throttle background work and App Nap can kick in.
-        process.qualityOfService = .utility
+        // Use .userInitiated so macOS keeps the CLI responsive; the menubar badge depends on
+        // timely results. .utility causes visible staleness because macOS freely throttles
+        // accessory-app subprocesses at that QOS tier.
+        process.qualityOfService = .userInitiated
         return process
     }
 

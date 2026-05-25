@@ -46,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         ProcessInfo.processInfo.automaticTerminationSupportEnabled = false
         ProcessInfo.processInfo.disableSuddenTermination()
         backgroundActivity = ProcessInfo.processInfo.beginActivity(
-            options: [.automaticTerminationDisabled, .suddenTerminationDisabled],
+            options: [.userInitiatedAllowingIdleSystemSleep, .automaticTerminationDisabled, .suddenTerminationDisabled],
             reason: "Watcher needs to stay running to update cost display."
         )
 
