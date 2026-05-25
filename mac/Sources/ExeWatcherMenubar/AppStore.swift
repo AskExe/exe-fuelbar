@@ -1,14 +1,18 @@
 import Foundation
 import Observation
 
-private let cacheTTLSeconds: TimeInterval = 30
+private let todayCacheTTLSeconds: TimeInterval = 30
+private let historicalCacheTTLSeconds: TimeInterval = 5 * 60
 typealias MenubarPayloadFetcher = @Sendable (Period, ProviderFilter, Bool) async throws -> MenubarPayload
 typealias AppStoreDateProvider = @Sendable () -> Date
 
 struct CachedPayload {
     let payload: MenubarPayload
     let fetchedAt: Date
-    func isFresh(now: Date) -> Bool { now.timeIntervalSince(fetchedAt) < cacheTTLSeconds }
+    func isFresh(now: Date, period: Period) -> Bool {
+        let ttl = period == .today ? todayCacheTTLSeconds : historicalCacheTTLSeconds
+        return now.timeIntervalSince(fetchedAt) < ttl
+    }
 }
 
 struct PayloadCacheKey: Hashable {
@@ -312,7 +316,7 @@ final class AppStore {
     }
 
     private func isFresh(_ key: PayloadCacheKey) -> Bool {
-        cache[key]?.isFresh(now: now()) ?? false
+        cache[key]?.isFresh(now: now(), period: key.period) ?? false
     }
 
     /// Refresh payload for key only when missing or stale.
