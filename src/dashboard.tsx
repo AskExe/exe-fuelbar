@@ -454,7 +454,7 @@ function TopSessions({ projects, pw, bw }: { projects: ProjectSummary[]; pw: num
     return <Panel title="Top Sessions" color={PANEL_COLORS.sessions} width={pw}><Text dimColor>No sessions</Text></Panel>
   }
 
-  const maxCost = top[0].totalCostUSD
+  const maxCost = top[0]?.totalCostUSD ?? 0
   const nw = Math.max(8, pw - bw - TOP_SESSIONS_COST_COL - TOP_SESSIONS_CALLS_COL - 1 - PANEL_CHROME)
 
   return (
@@ -792,14 +792,14 @@ function InteractiveDashboard({ initialPeriod, initialProvider, refreshSeconds, 
     if ((input === 'b' || key.escape) && view === 'optimize') { setView('dashboard'); return }
     if (input === 'c' && compareAvailable && view === 'dashboard') { setView('compare'); return }
     if (input === 'p' && multipleProviders && view !== 'compare') {
-      const opts = ['all', ...detectedProviders]; const next = opts[(opts.indexOf(activeProvider) + 1) % opts.length]
+      const opts = ['all', ...detectedProviders]; const next = opts[(opts.indexOf(activeProvider) + 1) % opts.length] ?? 'all'
       setActiveProvider(next); setView('dashboard')
       if (debounceRef.current) clearTimeout(debounceRef.current)
       reloadData(period, next); return
     }
     const idx = PERIODS.indexOf(period)
-    if (key.leftArrow) switchPeriod(PERIODS[(idx - 1 + PERIODS.length) % PERIODS.length]!)
-    else if (key.rightArrow || key.tab) switchPeriod(PERIODS[(idx + 1) % PERIODS.length]!)
+    if (key.leftArrow) switchPeriod(PERIODS[(idx - 1 + PERIODS.length) % PERIODS.length] ?? 'today')
+    else if (key.rightArrow || key.tab) switchPeriod(PERIODS[(idx + 1) % PERIODS.length] ?? 'today')
     else if (input === '1') switchPeriodImmediate('today')
     else if (input === '2') switchPeriodImmediate('week')
     else if (input === '3') switchPeriodImmediate('30days')
