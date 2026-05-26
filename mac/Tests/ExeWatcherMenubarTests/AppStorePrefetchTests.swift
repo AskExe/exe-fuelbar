@@ -9,6 +9,8 @@ private func makePayload(
 ) -> MenubarPayload {
     MenubarPayload(
         generated: "2026-05-04T00:00:00Z",
+            cliVersion: nil,
+            minAppVersion: nil,
         current: CurrentBlock(
             label: label,
             cost: cost,
@@ -222,6 +224,8 @@ struct AppStoreProviderPrefetchTests {
             baseKey: makePayload(label: "Today", cost: 18, providers: ["claude": 12]),
             optimizeKey: MenubarPayload(
                 generated: "2026-05-04T00:00:00Z",
+            cliVersion: nil,
+            minAppVersion: nil,
                 current: CurrentBlock(
                     label: "Today",
                     cost: 18,

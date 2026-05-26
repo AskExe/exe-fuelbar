@@ -4,6 +4,8 @@ import Foundation
 /// `current` is scoped to the requested period; the whole payload reflects that slice.
 struct MenubarPayload: Codable, Sendable {
     let generated: String
+    let cliVersion: String?
+    let minAppVersion: String?
     let current: CurrentBlock
     let optimize: OptimizeBlock
     let history: HistoryBlock
@@ -180,6 +182,8 @@ extension MenubarPayload {
     /// plausible-looking fake numbers leak into the UI.
     static let empty = MenubarPayload(
         generated: "",
+        cliVersion: nil,
+        minAppVersion: nil,
         current: CurrentBlock(
             label: "",
             cost: 0,
