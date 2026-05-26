@@ -253,7 +253,10 @@ final class AppStore {
         let target = key(period: .today, provider: .all, includeOptimize: false)
         lastBadgeRefreshAttemptAt = now()
         // Badge uses its own dedicated fetch slot — never blocked by detail/prefetch fetches.
-        guard !badgeInFlight else { return }
+        guard !badgeInFlight else {
+            NSLog("Exe Watcher: badge refresh skipped (previous fetch still in flight)")
+            return
+        }
         badgeInFlight = true
         let generation = refreshGeneration
         defer {

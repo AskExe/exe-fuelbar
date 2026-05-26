@@ -3,6 +3,9 @@ import AppKit
 import Observation
 import ServiceManagement
 import CoreServices
+import os.log
+
+private let wlog = Logger(subsystem: "com.askexe.exe-watcher-menubar", category: "refresh")
 
 /// Keep the always-visible menu bar badge live. This matches the README/product promise and
 /// avoids the badge appearing stuck while the popover is closed during active coding sessions.
@@ -11,6 +14,12 @@ private let idleRefreshIntervalSeconds: UInt64 = 30
 private let statusItemWidth: CGFloat = NSStatusItem.variableLength
 private let popoverWidth: CGFloat = 400
 private let popoverHeight: CGFloat = 660
+
+private let refreshTimeFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "HH:mm:ss"
+    return f
+}()
 private let menubarTitleFontSize: CGFloat = 13
 
 @main
@@ -32,6 +41,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private let store = AppStore()
     let updateChecker = UpdateChecker()
     private var refreshLoopTask: Task<Void, Never>?
+    private var refreshTimer: DispatchSourceTimer?
+
+    /// Append a timestamped line to ~/.cache/exe-watcher/refresh.log for debugging.
+    /// Keeps only the last 200 lines to avoid unbounded growth.
+    static func appendLog(_ message: String) {
+        let dir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".cache/exe-watcher")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let logFile = dir.appendingPathComponent("refresh.log")
+        let ts = refreshTimeFormatter.string(from: Date())
+        let line = "[\(ts)] \(message)\n"
+        if let handle = try? FileHandle(forWritingTo: logFile) {
+            handle.seekToEndOfFile()
+            handle.write(Data(line.utf8))
+            handle.closeFile()
+        } else {
+            try? Data(line.utf8).write(to: logFile)
+        }
+        // Trim to last 200 lines periodically (every ~50 writes)
+        if Int.random(in: 0..<50) == 0 {
+            if let content = try? String(contentsOf: logFile, encoding: .utf8) {
+                let lines = content.components(separatedBy: "\n")
+                if lines.count > 200 {
+                    let trimmed = lines.suffix(200).joined(separator: "\n")
+                    try? trimmed.write(to: logFile, atomically: true, encoding: .utf8)
+                }
+            }
+        }
+    }
     private var usageLogWatcher: UsageLogWatcher?
     private var usageLogDebounceTask: Task<Void, Never>?
     private var automaticRefreshInFlight = false
@@ -152,6 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         refreshLoopTask?.cancel()
+        refreshTimer?.cancel()
         usageLogDebounceTask?.cancel()
         usageLogWatcher?.stop()
     }
@@ -200,14 +239,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         usageLogWatcher?.start()
     }
 
+    /// Throttle (not debounce) FSEvents-driven refreshes. Under heavy agent write load,
+    /// debounce never fires because each new event cancels the previous sleep. Throttle
+    /// guarantees a refresh fires within 5s of the first event, then ignores events for
+    /// a cooldown period. This is the fix for the "$140→$190 jump on manual refresh" bug.
+    private var lastFSEventRefreshAt: Date = .distantPast
+    private static let fsEventThrottleSeconds: TimeInterval = 5
+
     private func scheduleUsageLogRefresh() {
-        usageLogDebounceTask?.cancel()
+        let now = Date()
+        let elapsed = now.timeIntervalSince(lastFSEventRefreshAt)
+        guard elapsed >= Self.fsEventThrottleSeconds else { return }
+
+        // First event after cooldown — schedule a refresh after a short delay to batch
+        // rapid-fire events, but DON'T cancel on subsequent events (throttle, not debounce).
+        guard usageLogDebounceTask == nil else { return }
+        Self.appendLog("FSEVENTS throttle: scheduling refresh")
         usageLogDebounceTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 1_500_000_000)
-            guard !Task.isCancelled else { return }
-            // Do not await from the debounce task. Popover/timer reschedules cancel debounce
-            // tasks, and cancellation during an in-flight refresh used to strand
-            // automaticRefreshInFlight=true until the user clicked manual Refresh.
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !Task.isCancelled, let self else { return }
+            self.lastFSEventRefreshAt = Date()
+            self.usageLogDebounceTask = nil
+            Self.appendLog("FSEVENTS throttle: firing refresh")
             Task { @MainActor [weak self] in
                 await self?.performAutomaticRefresh(refreshSelectedPeriod: false)
             }
@@ -216,6 +269,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func performAutomaticRefresh(refreshSelectedPeriod: Bool) async {
         if automaticRefreshInFlight {
+            wlog.notice("refresh skipped (already in flight)")
+            Self.appendLog("SKIPPED (in flight)")
             automaticRefreshQueued = true
             return
         }
@@ -225,7 +280,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         repeat {
             automaticRefreshQueued = false
+            let start = Date()
             await store.refreshTodayBadge()
+            let elapsed = Date().timeIntervalSince(start)
+            let cost = store.todayPayload?.current.cost ?? -1
+            wlog.notice("badge refreshed in \(String(format: "%.1f", elapsed))s — cost=$\(String(format: "%.2f", cost))")
+            Self.appendLog("REFRESH done in \(String(format: "%.1f", elapsed))s — cost=$\(String(format: "%.2f", cost))")
             refreshStatusButton()
             let selected = store.selectedPeriod
             if refreshSelectedPeriod && selected != .today {
@@ -236,17 +296,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func rescheduleTimer(intervalSeconds: UInt64) {
         refreshLoopTask?.cancel()
-        refreshLoopTask = Task { @MainActor [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: intervalSeconds * 1_000_000_000)
-                guard !Task.isCancelled else { break }
-                // Fire the refresh in its own MainActor task so rescheduling the timer cannot
-                // cancel a refresh that is already updating the badge.
-                Task { @MainActor [weak self] in
-                    await self?.performAutomaticRefresh(refreshSelectedPeriod: true)
-                }
+        refreshLoopTask = nil
+        refreshTimer?.cancel()
+        // Use a DispatchSourceTimer instead of Task.sleep. Swift cooperative task
+        // scheduling can defer .sleep wakeups indefinitely for background/accessory
+        // apps even with beginActivity — the runtime treats them as low-priority.
+        // GCD timers fire reliably regardless of app activation state.
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + Double(intervalSeconds), repeating: Double(intervalSeconds), leeway: .seconds(1))
+        timer.setEventHandler { [weak self] in
+            let tick = Date()
+            wlog.notice("timer fired at \(refreshTimeFormatter.string(from: tick)) (interval=\(intervalSeconds)s)")
+            Self.appendLog("TIMER fired (interval=\(intervalSeconds)s)")
+            Task { @MainActor [weak self] in
+                await self?.performAutomaticRefresh(refreshSelectedPeriod: true)
             }
         }
+        timer.resume()
+        refreshTimer = timer
     }
 
     private func observeStore() {
