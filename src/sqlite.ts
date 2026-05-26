@@ -71,7 +71,9 @@ function loadDriver(): boolean {
       `(underlying error: ${message})`
     return false
   } finally {
-    restore()
+    // The ExperimentalWarning fires on the next microtask after require(), not synchronously.
+    // Defer restore so the shim is still active when the warning actually emits.
+    setTimeout(restore, 0)
   }
 }
 
