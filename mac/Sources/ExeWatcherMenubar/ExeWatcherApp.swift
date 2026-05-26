@@ -15,6 +15,26 @@ private let statusItemWidth: CGFloat = NSStatusItem.variableLength
 private let popoverWidth: CGFloat = 400
 private let popoverHeight: CGFloat = 660
 
+/// Module-level log function — writes to ~/.cache/exe-watcher/refresh.log.
+/// Accessible from any file in the module (AppStore, AppDelegate, etc).
+/// Must be @MainActor to be callable from @MainActor contexts without suspension.
+@MainActor
+func watcherLog(_ message: String) {
+    let dir = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent(".cache/exe-watcher")
+    try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let logFile = dir.appendingPathComponent("refresh.log")
+    let ts = refreshTimeFormatter.string(from: Date())
+    let line = "[\(ts)] \(message)\n"
+    if let handle = try? FileHandle(forWritingTo: logFile) {
+        handle.seekToEndOfFile()
+        handle.write(Data(line.utf8))
+        handle.closeFile()
+    } else {
+        try? Data(line.utf8).write(to: logFile)
+    }
+}
+
 private let refreshTimeFormatter: DateFormatter = {
     let f = DateFormatter()
     f.dateFormat = "HH:mm:ss"
@@ -43,33 +63,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var refreshLoopTask: Task<Void, Never>?
     private var refreshTimer: DispatchSourceTimer?
 
-    /// Append a timestamped line to ~/.cache/exe-watcher/refresh.log for debugging.
-    /// Keeps only the last 200 lines to avoid unbounded growth.
-    static func appendLog(_ message: String) {
-        let dir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".cache/exe-watcher")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let logFile = dir.appendingPathComponent("refresh.log")
-        let ts = refreshTimeFormatter.string(from: Date())
-        let line = "[\(ts)] \(message)\n"
-        if let handle = try? FileHandle(forWritingTo: logFile) {
-            handle.seekToEndOfFile()
-            handle.write(Data(line.utf8))
-            handle.closeFile()
-        } else {
-            try? Data(line.utf8).write(to: logFile)
-        }
-        // Trim to last 200 lines periodically (every ~50 writes)
-        if Int.random(in: 0..<50) == 0 {
-            if let content = try? String(contentsOf: logFile, encoding: .utf8) {
-                let lines = content.components(separatedBy: "\n")
-                if lines.count > 200 {
-                    let trimmed = lines.suffix(200).joined(separator: "\n")
-                    try? trimmed.write(to: logFile, atomically: true, encoding: .utf8)
-                }
-            }
-        }
-    }
     private var usageLogWatcher: UsageLogWatcher?
     private var usageLogDebounceTask: Task<Void, Never>?
     private var automaticRefreshInFlight = false
@@ -254,44 +247,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // First event after cooldown — schedule a refresh after a short delay to batch
         // rapid-fire events, but DON'T cancel on subsequent events (throttle, not debounce).
         guard usageLogDebounceTask == nil else { return }
-        Self.appendLog("FSEVENTS throttle: scheduling refresh")
+        watcherLog("FSEVENTS throttle: scheduling refresh")
         usageLogDebounceTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             guard !Task.isCancelled, let self else { return }
             self.lastFSEventRefreshAt = Date()
             self.usageLogDebounceTask = nil
-            Self.appendLog("FSEVENTS throttle: firing refresh")
+            watcherLog("FSEVENTS throttle: firing refresh")
             Task { @MainActor [weak self] in
                 await self?.performAutomaticRefresh(refreshSelectedPeriod: false)
             }
         }
     }
 
+    private var lastRefreshStartedAt: Date = .distantPast
+
+    /// Simplified automatic refresh — no in-flight guard, no re-entrancy protection.
+    /// The old version used automaticRefreshInFlight which got permanently stuck.
+    /// Now we just fire-and-forget: if a refresh is already running, the store's
+    /// badgeInFlight guard in refreshTodayBadge handles de-duplication.
     private func performAutomaticRefresh(refreshSelectedPeriod: Bool) async {
-        if automaticRefreshInFlight {
-            wlog.notice("refresh skipped (already in flight)")
-            Self.appendLog("SKIPPED (in flight)")
-            automaticRefreshQueued = true
-            return
-        }
-
-        automaticRefreshInFlight = true
-        defer { automaticRefreshInFlight = false }
-
-        repeat {
-            automaticRefreshQueued = false
-            let start = Date()
-            await store.refreshTodayBadge()
-            let elapsed = Date().timeIntervalSince(start)
-            let cost = store.todayPayload?.current.cost ?? -1
-            wlog.notice("badge refreshed in \(String(format: "%.1f", elapsed))s — cost=$\(String(format: "%.2f", cost))")
-            Self.appendLog("REFRESH done in \(String(format: "%.1f", elapsed))s — cost=$\(String(format: "%.2f", cost))")
-            refreshStatusButton()
+        let start = Date()
+        watcherLog("REFRESH starting...")
+        await store.refreshTodayBadge()
+        let elapsed = Date().timeIntervalSince(start)
+        let cost = store.todayPayload?.current.cost ?? -1
+        watcherLog("REFRESH done in \(String(format: "%.1f", elapsed))s — cost=$\(String(format: "%.2f", cost))")
+        refreshStatusButton()
+        if refreshSelectedPeriod {
             let selected = store.selectedPeriod
-            if refreshSelectedPeriod && selected != .today {
+            if selected != .today {
                 await store.refreshQuietly(period: selected)
             }
-        } while automaticRefreshQueued
+        }
     }
 
     private func rescheduleTimer(intervalSeconds: UInt64) {
@@ -307,7 +295,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         timer.setEventHandler { [weak self] in
             let tick = Date()
             wlog.notice("timer fired at \(refreshTimeFormatter.string(from: tick)) (interval=\(intervalSeconds)s)")
-            Self.appendLog("TIMER fired (interval=\(intervalSeconds)s)")
+            watcherLog("TIMER fired (interval=\(intervalSeconds)s)")
             Task { @MainActor [weak self] in
                 await self?.performAutomaticRefresh(refreshSelectedPeriod: true)
             }

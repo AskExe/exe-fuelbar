@@ -254,29 +254,41 @@ final class AppStore {
         lastBadgeRefreshAttemptAt = now()
         // Badge uses its own dedicated fetch slot — never blocked by detail/prefetch fetches.
         guard !badgeInFlight else {
-            NSLog("Exe Watcher: badge refresh skipped (previous fetch still in flight)")
+            watcherLog("BADGE skipped (badgeInFlight=true)")
             return
         }
+        watcherLog("BADGE starting fetch...")
         badgeInFlight = true
         let generation = refreshGeneration
         defer {
-            if generation == refreshGeneration {
-                badgeInFlight = false
-            }
+            badgeInFlight = false
+            watcherLog("BADGE badgeInFlight reset to false")
         }
         do {
-            let fresh = try await fetchPayload(target.period, target.provider, false)
+            // Timeout: if CLI hangs, don't block forever. DataClient has its own 60s timeout
+            // but we add a 15s safety net here to prevent badgeInFlight from staying true.
+            let fresh = try await withThrowingTaskGroup(of: MenubarPayload.self) { group in
+                group.addTask { try await self.fetchPayload(target.period, target.provider, false) }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 15_000_000_000)
+                    throw CancellationError()
+                }
+                let result = try await group.next()!
+                group.cancelAll()
+                return result
+            }
             guard generation == refreshGeneration else { return }
             cache[target] = CachedPayload(payload: fresh, fetchedAt: now())
             errorsByKey[target] = nil
             lastBadgeRefreshSuccessAt = now()
             lastBadgeRefreshError = nil
+            watcherLog("BADGE fetch success — cost=$\(String(format: "%.2f", fresh.current.cost))")
         } catch {
             guard generation == refreshGeneration else { return }
             let desc = Self.describe(error: error)
             errorsByKey[target] = desc
             lastBadgeRefreshError = desc
-            NSLog("Exe Watcher: badge fetch failed: \(error)")
+            watcherLog("BADGE fetch FAILED: \(desc)")
         }
     }
 
@@ -293,17 +305,17 @@ final class AppStore {
         // Clear stale error on retry start so the UI shows "loading" instead of a stale error.
         errorsByKey[key] = nil
         defer {
+            // ALWAYS clean up in-flight state. The generation check must only gate
+            // cache writes, not cleanup — otherwise a generation bump during a fetch
+            // permanently locks the key in inFlightKeys.
+            inFlightKeys.remove(key)
+            activeFetchCount = max(0, activeFetchCount - 1)
             if generation == refreshGeneration {
-                inFlightKeys.remove(key)
-                activeFetchCount = max(0, activeFetchCount - 1)
-                // Drain pending: if someone queued a refresh while we were in-flight, fire it now.
                 if pendingKeys.remove(key) != nil {
                     Task { @MainActor in
                         await self.refreshKey(key, includeOptimize: includeOptimize)
                     }
                 }
-            } else {
-                activeFetchCount = max(0, activeFetchCount - 1)
             }
         }
         do {
