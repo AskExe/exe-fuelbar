@@ -21,6 +21,13 @@ import { classifyTurn, BASH_TOOLS } from './classifier.js'
 import { loadSessionIndex, saveSessionIndex, checkSessionFile, recordParseResult, pruneIndex, clearSessionIndex } from './session-index.js'
 import { extractBashCommands } from './bash-utils.js'
 
+let _parseWarnings: string[] = []
+
+/** Return warnings from the last parseAllSessions() call (schema issues, etc.). */
+export function getParseWarnings(): string[] {
+  return _parseWarnings
+}
+
 function unsanitizePath(dirName: string): string {
   return dirName.replace(/-/g, '/')
 }
@@ -476,6 +483,11 @@ async function parseProviderSources(
         sessionMap.set(key, { project: source.project, turns: [classified] })
       }
     }
+
+    // Collect any schema/format warnings from the parser
+    if (parser.warnings && parser.warnings.length > 0) {
+      _parseWarnings.push(...parser.warnings)
+    }
   }
 
   const projectMap = new Map<string, SessionSummary[]>()
@@ -629,6 +641,7 @@ export function filterProjectsByName(
 }
 
 export async function parseAllSessions(dateRange?: DateRange, providerFilter?: string): Promise<ProjectSummary[]> {
+  _parseWarnings = []
   const sourceContext = await getSourceContext(providerFilter)
   const allSources = sourceContext.sources
   const key = cacheKey(dateRange, providerFilter, sourceContext.fingerprint)

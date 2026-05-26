@@ -75,6 +75,7 @@ export type DiagnosticsBlock = {
 }
 
 export type MenubarPayload = {
+  schemaVersion: number
   generated: string
   cliVersion: string
   minAppVersion: string
@@ -408,6 +409,7 @@ export function buildMenubarPayload(
   diagnostics?: DiagnosticsBlock,
 ): MenubarPayload {
   return {
+    schemaVersion: 2,
     generated: new Date().toISOString(),
     cliVersion: getCliVersion(),
     minAppVersion: MIN_APP_VERSION,

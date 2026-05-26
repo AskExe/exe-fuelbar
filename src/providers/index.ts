@@ -62,17 +62,55 @@ export async function getAllProviders(): Promise<Provider[]> {
 
 export const providers = coreProviders
 
+/** Warnings from provider discovery (schema issues, timeouts, etc.). */
+let _lastDiscoveryWarnings: string[] = []
+
+/** Return warnings from the last discoverAllSessions() call. */
+export function getDiscoveryWarnings(): string[] {
+  return _lastDiscoveryWarnings
+}
+
+const PROVIDER_TIMEOUT_MS = 5_000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<{ result: T | null; warning: string | null }> {
+  return Promise.race([
+    promise.then(result => ({ result, warning: null })),
+    new Promise<{ result: null; warning: string }>(resolve =>
+      setTimeout(() => resolve({ result: null, warning: `Provider "${label}" timed out after ${ms}ms — skipped` }), ms),
+    ),
+  ])
+}
+
 export async function discoverAllSessions(providerFilter?: string): Promise<SessionSource[]> {
+  _lastDiscoveryWarnings = []
   const allProviders = await getAllProviders()
   const filtered = providerFilter && providerFilter !== 'all'
     ? allProviders.filter(p => p.name === providerFilter)
     : allProviders
-  const all: SessionSource[] = []
-  for (const provider of filtered) {
-    const sessions = await provider.discoverSessions()
-    all.push(...sessions)
-  }
-  return all
+
+  // Run each provider's discovery with independent timeout (Fix 3)
+  const results = await Promise.all(
+    filtered.map(async provider => {
+      try {
+        const { result, warning } = await withTimeout(
+          provider.discoverSessions(),
+          PROVIDER_TIMEOUT_MS,
+          provider.name,
+        )
+        if (warning) {
+          _lastDiscoveryWarnings.push(warning)
+          return [] as SessionSource[]
+        }
+        return result ?? []
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        _lastDiscoveryWarnings.push(`Provider "${provider.name}" discovery failed: ${msg}`)
+        return [] as SessionSource[]
+      }
+    }),
+  )
+
+  return results.flat()
 }
 
 export async function getProvider(name: string): Promise<Provider | undefined> {

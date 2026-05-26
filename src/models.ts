@@ -120,9 +120,27 @@ const FALLBACK_PRICING: Record<string, ModelCosts> = {
 }
 
 let pricingCache: Map<string, ModelCosts> | null = null
+let _pricingWarnings: string[] = []
+let _pricingLastUpdated: number | null = null
+
+const STALENESS_WARN_MS = 7 * 24 * 60 * 60 * 1000  // 7 days
+
+/** Return warnings about pricing data quality (staleness, fallback usage). */
+export function getPricingWarnings(): string[] {
+  return _pricingWarnings
+}
+
+/** Timestamp when pricing was last successfully fetched/loaded from cache. */
+export function getPricingLastUpdated(): number | null {
+  return _pricingLastUpdated
+}
 
 function getCachePath(): string {
   return join(getCacheDir(), 'litellm-pricing.json')
+}
+
+function getLastKnownGoodPath(): string {
+  return join(getCacheDir(), 'pricing-cache.json')
 }
 
 function parseLiteLLMEntry(entry: LiteLLMEntry): ModelCosts | null {
@@ -183,31 +201,76 @@ async function fetchAndCachePricing(): Promise<Map<string, ModelCosts>> {
     throw err
   }
 
+  // Also write last-known-good cache (survives TTL expiry for offline users)
+  try {
+    const lkgPath = getLastKnownGoodPath()
+    const lkgTmp = `${lkgPath}.${randomBytes(8).toString('hex')}.tmp`
+    const lkgHandle = await open(lkgTmp, 'w', 0o600)
+    try {
+      await lkgHandle.writeFile(JSON.stringify({
+        timestamp: Date.now(),
+        data: Object.fromEntries(pricing),
+      }), { encoding: 'utf-8' })
+      await lkgHandle.sync()
+    } finally {
+      await lkgHandle.close()
+    }
+    await rename(lkgTmp, lkgPath).catch(() => { try { unlink(lkgTmp) } catch { /* ignore */ } })
+  } catch { /* last-known-good write is best-effort */ }
+
   return pricing
 }
 
-async function loadCachedPricing(): Promise<Map<string, ModelCosts> | null> {
+async function loadCachedPricing(): Promise<{ map: Map<string, ModelCosts>; timestamp: number } | null> {
   try {
     const raw = await readFile(getCachePath(), 'utf-8')
     const cached = JSON.parse(raw) as { timestamp: number; data: Record<string, ModelCosts> }
     if (Date.now() - cached.timestamp > CACHE_TTL_MS) return null
-    return new Map(Object.entries(cached.data))
+    return { map: new Map(Object.entries(cached.data)), timestamp: cached.timestamp }
+  } catch {
+    return null
+  }
+}
+
+/** Load last-known-good pricing (no TTL — used when fetch fails and normal cache expired). */
+async function loadLastKnownGoodPricing(): Promise<{ map: Map<string, ModelCosts>; timestamp: number } | null> {
+  try {
+    const raw = await readFile(getLastKnownGoodPath(), 'utf-8')
+    const cached = JSON.parse(raw) as { timestamp: number; data: Record<string, ModelCosts> }
+    return { map: new Map(Object.entries(cached.data)), timestamp: cached.timestamp }
   } catch {
     return null
   }
 }
 
 export async function loadPricing(): Promise<void> {
+  _pricingWarnings = []
+
   const cached = await loadCachedPricing()
   if (cached) {
-    pricingCache = cached
+    pricingCache = cached.map
+    _pricingLastUpdated = cached.timestamp
     return
   }
 
   try {
     pricingCache = await fetchAndCachePricing()
+    _pricingLastUpdated = Date.now()
   } catch {
-    pricingCache = new Map(Object.entries(FALLBACK_PRICING))
+    // Try last-known-good cache before falling back to hardcoded pricing
+    const lkg = await loadLastKnownGoodPricing()
+    if (lkg) {
+      pricingCache = lkg.map
+      _pricingLastUpdated = lkg.timestamp
+      const ageDays = Math.floor((Date.now() - lkg.timestamp) / (24 * 60 * 60 * 1000))
+      if (Date.now() - lkg.timestamp > STALENESS_WARN_MS) {
+        _pricingWarnings.push(`Model pricing data may be outdated (last updated ${ageDays} days ago)`)
+      }
+    } else {
+      pricingCache = new Map(Object.entries(FALLBACK_PRICING))
+      _pricingLastUpdated = null
+      _pricingWarnings.push('Using hardcoded fallback pricing — could not fetch or load cached pricing')
+    }
   }
 }
 

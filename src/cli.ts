@@ -4,8 +4,8 @@ import { homedir } from 'os'
 import { Command } from 'commander'
 import { installMenubarApp } from './menubar-installer.js'
 import { exportCsv, exportJson, type PeriodExport } from './export.js'
-import { loadPricing, setModelAliases } from './models.js'
-import { parseAllSessions, filterProjectsByName } from './parser.js'
+import { loadPricing, setModelAliases, getPricingWarnings } from './models.js'
+import { parseAllSessions, filterProjectsByName, getParseWarnings } from './parser.js'
 import { convertCost } from './currency.js'
 import { renderStatusBar } from './format.js'
 import { type PeriodData, type ProviderCost, type AgentStatsPayload } from './menubar-json.js'
@@ -17,7 +17,7 @@ import { renderDashboard } from './dashboard.js'
 import { parseDateRangeFlags } from './cli-date.js'
 import { prewarmOptimizeScan, runOptimize, scanAndDetect } from './optimize.js'
 import { renderCompare } from './compare.js'
-import { getAllProviders } from './providers/index.js'
+import { getAllProviders, getDiscoveryWarnings } from './providers/index.js'
 import { clearPlan, readConfig, readPlan, saveConfig, savePlan, getConfigFilePath, type PlanId } from './config.js'
 import { clampResetDay, getPlanUsageOrNull, type PlanUsage } from './plan-usage.js'
 import { getPresetPlan, isPlanId, isPlanProvider, planDisplayName } from './plans.js'
@@ -656,6 +656,8 @@ program
         projectSpend = buildProjectSpendFromDays(selectedPeriodDays, todayOnlyDays, [], [])
       }
 
+      // Collect provider discovery + pricing staleness + parse format warnings
+      warnings.push(...getDiscoveryWarnings(), ...getPricingWarnings(), ...getParseWarnings())
       const diagnostics: DiagnosticsBlock = { daysCount, parseTimeMs, warnings }
       const payload = buildMenubarPayload(currentData, providers, optimize, dailyHistory, agentStats, projectSpend, exeOsDetected, statsFileAge, diagnostics)
       const json = JSON.stringify(payload)

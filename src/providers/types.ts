@@ -6,6 +6,8 @@ export type SessionSource = {
 
 export type SessionParser = {
   parse(): AsyncGenerator<ParsedProviderCall>
+  /** Warnings emitted during parsing (schema changes, missing fields, etc.). */
+  warnings?: string[]
 }
 
 export type ParsedProviderCall = {
