@@ -49,6 +49,13 @@ final class UpdateChecker {
                 $0.name.hasPrefix("ExeWatcherMenubar-") && $0.name.hasSuffix(".zip")
             }) else { return }
 
+            // Validate download URL points to GitHub-owned domains (defense in depth).
+            let allowedPrefixes = ["https://github.com/", "https://objects.githubusercontent.com/"]
+            guard allowedPrefixes.contains(where: { asset.browser_download_url.hasPrefix($0) }) else {
+                NSLog("Exe Watcher: untrusted download URL: \(asset.browser_download_url)")
+                return
+            }
+
             let version = asset.name
                 .replacingOccurrences(of: "ExeWatcherMenubar-", with: "")
                 .replacingOccurrences(of: ".zip", with: "")
