@@ -5,6 +5,8 @@ private let releasesAPI = "https://api.github.com/repos/AskExe/exe-watcher/relea
 private let checkIntervalSeconds: TimeInterval = 2 * 24 * 60 * 60
 private let lastCheckKey = "UpdateChecker.lastCheckDate"
 private let cachedVersionKey = "UpdateChecker.latestVersion"
+private let rateLimitResetKey = "UpdateChecker.rateLimitReset"
+private let networkTimeoutSeconds: TimeInterval = 5
 
 @MainActor
 @Observable
@@ -37,13 +39,39 @@ final class UpdateChecker {
     }
 
     func check() async {
+        // Rate limit guard: skip if GitHub told us to back off and the reset time hasn't passed.
+        let rateLimitReset = UserDefaults.standard.double(forKey: rateLimitResetKey)
+        if rateLimitReset > 0 && Date().timeIntervalSince1970 < rateLimitReset {
+            let waitMinutes = Int(ceil((rateLimitReset - Date().timeIntervalSince1970) / 60))
+            latestVersion = UserDefaults.standard.string(forKey: cachedVersionKey)
+            updateError = "Update check rate-limited — will retry in \(waitMinutes)m"
+            return
+        }
+
         guard let url = URL(string: releasesAPI) else { return }
         var request = URLRequest(url: url)
         request.setValue("exe-watcher-menubar-updater", forHTTPHeaderField: "User-Agent")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = networkTimeoutSeconds
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            // Handle GitHub rate limiting (403 with X-RateLimit-Reset header)
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 403 {
+                if let resetHeader = httpResponse.value(forHTTPHeaderField: "X-RateLimit-Reset"),
+                   let resetTimestamp = Double(resetHeader) {
+                    UserDefaults.standard.set(resetTimestamp, forKey: rateLimitResetKey)
+                    let waitMinutes = Int(ceil((resetTimestamp - Date().timeIntervalSince1970) / 60))
+                    updateError = "GitHub API rate limit reached. Will retry in \(max(1, waitMinutes))m"
+                } else {
+                    updateError = "Update check rate-limited — will retry later"
+                }
+                latestVersion = UserDefaults.standard.string(forKey: cachedVersionKey)
+                NSLog("Exe Watcher: GitHub API rate limited (403)")
+                return
+            }
+
             let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
             guard let asset = release.assets.first(where: {
                 $0.name.hasPrefix("ExeWatcherMenubar-") && $0.name.hasSuffix(".zip")
@@ -64,10 +92,18 @@ final class UpdateChecker {
 
             latestVersion = version
             updateError = nil
+            // Clear any stale rate limit on success
+            UserDefaults.standard.removeObject(forKey: rateLimitResetKey)
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastCheckKey)
             UserDefaults.standard.set(version, forKey: cachedVersionKey)
+        } catch let urlError as URLError {
+            // Network error (offline, timeout, DNS failure, proxy issues)
+            NSLog("Exe Watcher: update check failed (network): \(urlError)")
+            latestVersion = UserDefaults.standard.string(forKey: cachedVersionKey)
+            updateError = "Offline — update check unavailable"
         } catch {
             NSLog("Exe Watcher: update check failed: \(error)")
+            latestVersion = UserDefaults.standard.string(forKey: cachedVersionKey)
             updateError = "Update check failed — tap to retry"
         }
     }

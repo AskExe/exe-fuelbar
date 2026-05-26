@@ -61,7 +61,9 @@ function getRateCachePath(): string {
 }
 
 async function fetchRate(code: string): Promise<number> {
-  const response = await fetch(`${FRANKFURTER_URL}${code}`)
+  const response = await fetch(`${FRANKFURTER_URL}${code}`, {
+    signal: AbortSignal.timeout(5_000),
+  })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   const data = await response.json() as { rates?: Record<string, unknown> }
   const rate = data.rates?.[code]

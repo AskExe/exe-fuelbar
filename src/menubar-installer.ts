@@ -71,7 +71,18 @@ async function fetchLatestReleaseAsset(version?: string): Promise<ReleaseAsset> 
       'User-Agent': 'exe-watcher-installer',
       Accept: 'application/vnd.github+json',
     },
+    signal: AbortSignal.timeout(10_000),
   })
+  if (response.status === 403) {
+    // GitHub rate limit — read X-RateLimit-Reset to give user a helpful wait time.
+    const resetHeader = response.headers.get('X-RateLimit-Reset')
+    if (resetHeader) {
+      const resetTimestamp = Number(resetHeader)
+      const waitMinutes = Math.max(1, Math.ceil((resetTimestamp - Date.now() / 1000) / 60))
+      throw new Error(`GitHub API rate limit reached. Try again in ${waitMinutes} minutes.`)
+    }
+    throw new Error('GitHub API rate limit reached. Try again later.')
+  }
   if (!response.ok) {
     throw new Error(`GitHub release lookup failed: HTTP ${response.status}`)
   }
