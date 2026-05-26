@@ -252,39 +252,15 @@ final class AppStore {
     func refreshTodayBadge() async {
         let target = key(period: .today, provider: .all, includeOptimize: false)
         lastBadgeRefreshAttemptAt = now()
-        // Badge uses its own dedicated fetch slot — never blocked by detail/prefetch fetches.
-        guard !badgeInFlight else {
-            watcherLog("BADGE skipped (badgeInFlight=true)")
-            return
-        }
-        watcherLog("BADGE starting fetch...")
-        badgeInFlight = true
-        let generation = refreshGeneration
-        defer {
-            badgeInFlight = false
-            watcherLog("BADGE badgeInFlight reset to false")
-        }
+        watcherLog("BADGE fetch starting...")
         do {
-            // Timeout: if CLI hangs, don't block forever. DataClient has its own 60s timeout
-            // but we add a 15s safety net here to prevent badgeInFlight from staying true.
-            let fresh = try await withThrowingTaskGroup(of: MenubarPayload.self) { group in
-                group.addTask { try await self.fetchPayload(target.period, target.provider, false) }
-                group.addTask {
-                    try await Task.sleep(nanoseconds: 15_000_000_000)
-                    throw CancellationError()
-                }
-                let result = try await group.next()!
-                group.cancelAll()
-                return result
-            }
-            guard generation == refreshGeneration else { return }
+            let fresh = try await fetchPayload(target.period, target.provider, false)
             cache[target] = CachedPayload(payload: fresh, fetchedAt: now())
             errorsByKey[target] = nil
             lastBadgeRefreshSuccessAt = now()
             lastBadgeRefreshError = nil
             watcherLog("BADGE fetch success — cost=$\(String(format: "%.2f", fresh.current.cost))")
         } catch {
-            guard generation == refreshGeneration else { return }
             let desc = Self.describe(error: error)
             errorsByKey[target] = desc
             lastBadgeRefreshError = desc
