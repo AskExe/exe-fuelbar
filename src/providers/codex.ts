@@ -143,11 +143,18 @@ function resolveModel(info: CodexEntry['payload'], sessionModel?: string): strin
 }
 
 function createParser(source: SessionSource, seenKeys: Set<string>): SessionParser {
+  const parserWarnings: string[] = []
   return {
+    warnings: parserWarnings,
     async *parse(): AsyncGenerator<ParsedProviderCall> {
       const content = await readSessionFile(source.path)
       if (content === null) return
       const lines = content.split('\n').filter(l => l.trim())
+      if (lines.length === 0) return
+
+      // Fix 1: Validate expected session format — detect schema changes
+      let hasSessionMeta = false
+      let hasTokenCounts = false
       let sessionModel: string | undefined
       let sessionId = ''
       let prevCumulativeTotal = 0
@@ -167,6 +174,7 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
         }
 
         if (entry.type === 'session_meta') {
+          hasSessionMeta = true
           sessionId = entry.payload?.session_id ?? basename(source.path, '.jsonl')
           sessionModel = entry.payload?.model
           continue
@@ -195,6 +203,7 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
         }
 
         if (entry.type === 'event_msg' && entry.payload?.type === 'token_count') {
+          hasTokenCounts = true
           const info = entry.payload.info
           if (!info) continue
 
@@ -291,6 +300,14 @@ function createParser(source: SessionSource, seenKeys: Set<string>): SessionPars
           pendingTools = []
           pendingUserMessage = ''
         }
+      }
+
+      // Fix 1: Format validation — warn if expected fields were absent
+      if (lines.length > 5 && !hasSessionMeta) {
+        parserWarnings.push(`Codex session file format may have changed — missing session_meta (${basename(source.path)})`)
+      }
+      if (lines.length > 5 && hasSessionMeta && !hasTokenCounts) {
+        parserWarnings.push(`Codex session file format may have changed — no token_count events found (${basename(source.path)})`)
       }
     },
   }
