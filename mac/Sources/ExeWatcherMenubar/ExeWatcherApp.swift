@@ -518,7 +518,7 @@ private final class UsageLogWatcher: @unchecked Sendable {
             return
         }
 
-        FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+        FSEventStreamSetDispatchQueue(stream, DispatchQueue.main)
         if !FSEventStreamStart(stream) {
             NSLog("Exe Watcher: failed to start usage log watcher")
             stop()
