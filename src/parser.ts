@@ -343,14 +343,33 @@ async function scanProjectDirs(dirs: Array<{ path: string; name: string }>, seen
       const action = await checkSessionFile(filePath, sessionIndex, dateRange)
       if (action === 'skip') continue
 
-      const session = await parseSessionFile(filePath, dirName, seenMsgIds, dateRange)
-
-      // Record result in index for future invocations
+      // Snapshot file fingerprint BEFORE parsing so we can detect mid-scan writes.
+      let preStat: { size: number; mtimeMs: number } | null = null
       try {
         const s = await stat(filePath)
-        recordParseResult(filePath, sessionIndex, s.size, s.mtimeMs, session !== null && session.apiCalls > 0)
-        indexDirty = true
-      } catch { /* stat failed, skip indexing */ }
+        preStat = { size: s.size, mtimeMs: s.mtimeMs }
+      } catch { /* stat failed, will skip indexing */ }
+
+      const session = await parseSessionFile(filePath, dirName, seenMsgIds, dateRange)
+
+      // Record result in index for future invocations.
+      // Only update the fingerprint when the file did NOT change during parsing.
+      // If the file was written to mid-scan (mtime shifted), the parsed data is
+      // stale relative to the new fingerprint — recording that would cause the
+      // next run to skip re-parsing (fingerprint matches) with outdated data,
+      // or worse, mark the file h=0 when it actually has new API calls.
+      if (preStat) {
+        try {
+          const postStat = await stat(filePath)
+          if (postStat.size === preStat.size && postStat.mtimeMs === preStat.mtimeMs) {
+            // File was stable during the parse — safe to record
+            recordParseResult(filePath, sessionIndex, preStat.size, preStat.mtimeMs, session !== null && session.apiCalls > 0)
+            indexDirty = true
+          }
+          // else: file changed mid-scan; leave the old index entry (if any) intact.
+          // The next run will see a fingerprint mismatch and re-parse.
+        } catch { /* stat failed, skip indexing */ }
+      }
 
       if (session && session.apiCalls > 0) {
         const existing = projectMap.get(dirName) ?? []

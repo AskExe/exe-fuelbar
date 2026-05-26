@@ -111,6 +111,12 @@ export async function checkSessionFile(
 
 /**
  * Record the result of parsing a file so future invocations can skip it.
+ *
+ * High-water mark: once a file is known to contain API calls (h=1), it is
+ * never downgraded to h=0.  Active session files can change mid-scan, causing
+ * a parse to return partial/empty data.  Downgrading would make the next run
+ * skip the file entirely, dropping its cost from the total — the root cause
+ * of the "costs drop $20 then reappear" bug.
  */
 export function recordParseResult(
   filePath: string,
@@ -119,7 +125,10 @@ export function recordParseResult(
   mtimeMs: number,
   hasApiCalls: boolean,
 ): void {
-  index.e[filePath] = { s: sizeBytes, m: mtimeMs, h: hasApiCalls ? 1 : 0 }
+  const prev = index.e[filePath]
+  // Never downgrade h from 1 → 0: once we know a file has data, keep it.
+  const h: 0 | 1 = hasApiCalls ? 1 : (prev?.h === 1 ? 1 : 0)
+  index.e[filePath] = { s: sizeBytes, m: mtimeMs, h }
 }
 
 /** Remove entries for files no longer discovered. */
