@@ -10,7 +10,7 @@ private let wlog = Logger(subsystem: "com.askexe.exe-watcher-menubar", category:
 /// Keep the always-visible menu bar badge live. This matches the README/product promise and
 /// avoids the badge appearing stuck while the popover is closed during active coding sessions.
 private let refreshIntervalSeconds: UInt64 = 30
-private let idleRefreshIntervalSeconds: UInt64 = 30
+private let idleRefreshIntervalSeconds: UInt64 = 300
 private let statusItemWidth: CGFloat = NSStatusItem.variableLength
 private let popoverWidth: CGFloat = 400
 private let popoverHeight: CGFloat = 660
@@ -77,7 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         ProcessInfo.processInfo.automaticTerminationSupportEnabled = false
         ProcessInfo.processInfo.disableSuddenTermination()
         backgroundActivity = ProcessInfo.processInfo.beginActivity(
-            options: [.userInitiatedAllowingIdleSystemSleep, .automaticTerminationDisabled, .suddenTerminationDisabled],
+            options: [.automaticTerminationDisabled, .suddenTerminationDisabled],
             reason: "Watcher needs to stay running to update cost display."
         )
 
