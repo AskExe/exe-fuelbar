@@ -249,9 +249,24 @@ final class AppStore {
     /// cache TTL: the timer also runs every 30s, and small scheduling jitter can otherwise make
     /// a tick land just before TTL expiry and skip the fetch, causing the badge to appear stuck
     /// or update every other tick during active sessions.
+    /// Timestamp-based guard: prevents concurrent CLI spawns that pile up and hang.
+    /// Unlike the old boolean flag, this uses a timestamp so it auto-expires after 20s
+    /// even if the previous fetch never returned.
+    private var badgeFetchStartedAt: Date = .distantPast
+    private static let badgeFetchGuardSeconds: TimeInterval = 20
+
     func refreshTodayBadge() async {
         let target = key(period: .today, provider: .all, includeOptimize: false)
         lastBadgeRefreshAttemptAt = now()
+
+        // Prevent concurrent CLI spawns. Auto-expires after 20s so it can never permanently stick.
+        let elapsed = now().timeIntervalSince(badgeFetchStartedAt)
+        if elapsed < Self.badgeFetchGuardSeconds {
+            watcherLog("BADGE skipped (fetch running for \(String(format: "%.0f", elapsed))s)")
+            return
+        }
+
+        badgeFetchStartedAt = now()
         watcherLog("BADGE fetch starting...")
         do {
             let fresh = try await fetchPayload(target.period, target.provider, false)
@@ -266,6 +281,8 @@ final class AppStore {
             lastBadgeRefreshError = desc
             watcherLog("BADGE fetch FAILED: \(desc)")
         }
+        // Reset guard so the next timer tick can start a fresh fetch immediately.
+        badgeFetchStartedAt = .distantPast
     }
 
     @discardableResult
