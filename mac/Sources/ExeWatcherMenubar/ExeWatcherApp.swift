@@ -65,8 +65,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private var usageLogWatcher: UsageLogWatcher?
     private var usageLogDebounceTask: Task<Void, Never>?
-    private var automaticRefreshInFlight = false
-    private var automaticRefreshQueued = false
     /// Held for the lifetime of the app to prevent Automatic Termination.
     private var backgroundActivity: NSObjectProtocol?
 
@@ -249,10 +247,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         guard usageLogDebounceTask == nil else { return }
         watcherLog("FSEVENTS throttle: scheduling refresh")
         usageLogDebounceTask = Task { @MainActor [weak self] in
+            defer { self?.usageLogDebounceTask = nil }
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             guard !Task.isCancelled, let self else { return }
             self.lastFSEventRefreshAt = Date()
-            self.usageLogDebounceTask = nil
             watcherLog("FSEVENTS throttle: firing refresh")
             Task { @MainActor [weak self] in
                 await self?.performAutomaticRefresh(refreshSelectedPeriod: false)
