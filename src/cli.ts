@@ -22,6 +22,7 @@ import { clearPlan, readConfig, readPlan, saveConfig, savePlan, getConfigFilePat
 import { clampResetDay, getPlanUsageOrNull, type PlanUsage } from './plan-usage.js'
 import { getPresetPlan, isPlanId, isPlanProvider, planDisplayName } from './plans.js'
 import { ALL_TIME_HISTORY_DAYS, computeProgressiveBackfillStart, resolveColdStartHistoryDays } from './progressive-backfill.js'
+import { createInterface } from 'node:readline'
 import { createRequire } from 'node:module'
 
 const require = createRequire(import.meta.url)
@@ -1072,15 +1073,26 @@ program
 
 // Default action: install menubar app on macOS when no subcommand given
 if (process.argv.length <= 2 && process.platform === 'darwin') {
-  console.log('\n  No subcommand given — installing/launching the macOS menubar app.')
-  console.log('  Use `exe-watcher --help` to see all available commands.\n')
-  installMenubarApp().then(result => {
-    console.log(`\n  Installed: ${result.installedPath}`)
-    if (result.launched) console.log('  Launched.')
-  }).catch(err => {
-    console.error(`\n  ${err instanceof Error ? err.message : String(err)}`)
-    process.exitCode = 1
-  })
+  const isTTY = process.stdin.isTTY && process.stdout.isTTY
+  if (!isTTY) {
+    // Non-interactive: show help instead of silently installing
+    program.outputHelp()
+  } else {
+    const rl = createInterface({ input: process.stdin, output: process.stdout })
+    rl.question('\n  No subcommand given. Install the macOS menubar app? (y/N) ', (answer) => {
+      rl.close()
+      if (answer.trim().toLowerCase() === 'y') {
+        installMenubarApp().then(result => {
+          console.log(`\n  Ready. ${result.installedPath}\n`)
+        }).catch(err => {
+          console.error(`\n  ${err instanceof Error ? err.message : String(err)}`)
+          process.exitCode = 1
+        })
+      } else {
+        program.outputHelp()
+      }
+    })
+  }
 } else {
   program.parse()
 }

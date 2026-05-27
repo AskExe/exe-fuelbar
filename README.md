@@ -42,10 +42,11 @@ npm install -g exe-watcher
 ```bash
 exe-watcher menubar            # install + launch
 exe-watcher menubar --force    # reinstall latest
-exe-watcher                    # on macOS: same as `menubar` (auto-installs)
+exe-watcher menubar --version v0.2.38  # install a specific version
+exe-watcher                    # on macOS: prompts to install menubar app
 ```
 
-> **Note:** Running `exe-watcher` with no subcommand on macOS automatically installs and launches the menubar app. Use `exe-watcher --help` to see all available commands.
+> **Note:** Running `exe-watcher` with no subcommand on macOS prompts you to install the menubar app. In non-interactive environments (pipes, CI), it shows help instead. Use `exe-watcher --help` to see all available commands.
 
 A Swift/SwiftUI popover that lives in your menu bar. Today's spend is always visible at a glance.
 
