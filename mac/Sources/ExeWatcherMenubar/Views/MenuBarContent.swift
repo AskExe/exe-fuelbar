@@ -319,7 +319,7 @@ private struct Header: View {
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.orange.opacity(0.8))
                 }
-                if updateChecker.updateAvailable {
+                if updateChecker.shouldShowUpdateButton {
                     UpdateBadge()
                 }
             }
@@ -351,7 +351,7 @@ private struct UpdateBadge: View {
                         Image(systemName: "arrow.down.circle.fill")
                             .font(.system(size: 10))
                     }
-                    Text(updateChecker.isUpdating ? "Updating..." : updateChecker.updateError != nil ? "Retry" : "Update")
+                    Text(updateChecker.isUpdating ? "Updating..." : updateChecker.updateError != nil ? "Retry" : updateChecker.updateAvailable ? "Update" : "Reinstall")
                         .font(.system(size: 10, weight: .medium))
                 }
                 .padding(.horizontal, 7)

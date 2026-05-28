@@ -6,6 +6,8 @@ private let checkIntervalSeconds: TimeInterval = 2 * 24 * 60 * 60
 private let lastCheckKey = "UpdateChecker.lastCheckDate"
 private let cachedVersionKey = "UpdateChecker.latestVersion"
 private let rateLimitResetKey = "UpdateChecker.rateLimitReset"
+private let forceUpdateButtonKey = "UpdateChecker.forceUpdateButton"
+private let forceUpdateButtonEnv = "EXE_WATCHER_FORCE_UPDATE_BUTTON"
 private let networkTimeoutSeconds: TimeInterval = 5
 
 @MainActor
@@ -22,6 +24,16 @@ final class UpdateChecker {
         let normalizedCurrent = current.hasPrefix("v") ? String(current.dropFirst()) : current
         guard !normalizedCurrent.isEmpty && normalizedCurrent != "dev" else { return false }
         return normalizedLatest.compare(normalizedCurrent, options: .numeric) == .orderedDescending
+    }
+
+    var shouldShowUpdateButton: Bool {
+        updateAvailable || localUpdateOverrideEnabled
+    }
+
+    var localUpdateOverrideEnabled: Bool {
+        if UserDefaults.standard.bool(forKey: forceUpdateButtonKey) { return true }
+        let raw = ProcessInfo.processInfo.environment[forceUpdateButtonEnv]?.lowercased()
+        return raw == "1" || raw == "true" || raw == "yes"
     }
 
     var currentVersion: String {
