@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Observation
 
 private let releasesAPI = "https://api.github.com/repos/AskExe/exe-watcher/releases/latest"
@@ -125,33 +126,55 @@ final class UpdateChecker {
         isUpdating = true
         updateError = nil
 
-        let process = ExeWatcherCLI.makeProcess(subcommand: ["menubar", "--force"])
-        let errPipe = Pipe()
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = errPipe
-
-        process.terminationHandler = { [weak self] proc in
-            let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
-            let stderr = String(data: errData, encoding: .utf8) ?? ""
-            Task { @MainActor in
-                guard let self else { return }
-                self.isUpdating = false
-                if proc.terminationStatus != 0 {
-                    self.updateError = self.sanitizeUpdateError(stderr, exitCode: proc.terminationStatus)
-                    NSLog("Exe Watcher: update failed (exit \(proc.terminationStatus)): \(stderr)")
-                } else {
-                    self.updateError = nil
-                }
-            }
-        }
-
         do {
-            try process.run()
+            try launchDetachedInstaller()
+            NSApp.terminate(nil)
         } catch {
             isUpdating = false
             updateError = "Could not start updater: \(error.localizedDescription)"
             NSLog("Exe Watcher: update spawn failed: \(error)")
         }
+    }
+
+    private func launchDetachedInstaller() throws {
+        let process = ExeWatcherCLI.makeProcess(subcommand: ["menubar", "--force"])
+        let executable = process.executableURL?.path ?? "/usr/bin/env"
+        let args = process.arguments ?? []
+        let env = process.environment ?? ProcessInfo.processInfo.environment
+        let logPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("exe-watcher-menubar-update.log")
+
+        let script = detachedInstallerScript(executable: executable, args: args, environment: env, logPath: logPath)
+        let launcher = Process()
+        launcher.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        launcher.arguments = ["-c", script]
+        launcher.standardOutput = FileHandle.nullDevice
+        launcher.standardError = FileHandle.nullDevice
+        try launcher.run()
+    }
+
+    private func shellQuote(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    private func detachedInstallerScript(
+        executable: String,
+        args: [String],
+        environment: [String: String],
+        logPath: String
+    ) -> String {
+        let exports = environment
+            .filter { !$0.key.isEmpty && $0.key.range(of: "^[A-Za-z_][A-Za-z0-9_]*$", options: .regularExpression) != nil }
+            .map { "export \($0.key)=\(shellQuote($0.value))" }
+            .joined(separator: "\n")
+        let argv = ([executable] + args).map(shellQuote).joined(separator: " ")
+        return """
+        (
+        \(exports)
+        sleep 0.35
+        echo "--- Exe Watcher menubar update $(date) ---" >> \(shellQuote(logPath))
+        \(argv) >> \(shellQuote(logPath)) 2>&1
+        ) &
+        """
     }
 
     private func sanitizeUpdateError(_ stderr: String, exitCode: Int32) -> String {
