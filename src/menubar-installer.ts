@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { cp, mkdir, mkdtemp, rename, rm, stat } from 'node:fs/promises'
 import { homedir, platform, tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
 
@@ -193,6 +193,28 @@ async function signalPids(signal: 'TERM' | 'KILL', pids: number[]): Promise<void
   })
 }
 
+async function movePath(source: string, dest: string): Promise<void> {
+  try {
+    await rename(source, dest)
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'EXDEV') {
+      await cp(source, dest, { recursive: true })
+      await rm(source, { recursive: true, force: true })
+    } else {
+      throw err
+    }
+  }
+}
+
+async function restoreExistingApp(backupPath: string, targetPath: string): Promise<void> {
+  if (!(await exists(backupPath))) return
+  await killRunningApp().catch(() => {})
+  await rm(targetPath, { recursive: true, force: true }).catch(() => {})
+  await movePath(backupPath, targetPath)
+  await runCommand('/usr/bin/open', [targetPath]).catch(() => {})
+  await waitForRunningApp().catch(() => false)
+}
+
 async function killRunningApp(): Promise<void> {
   const initialPids = await runningAppPids()
   if (initialPids.length === 0) return
@@ -251,31 +273,40 @@ export async function installMenubarApp(options: { force?: boolean; version?: st
     await runCommand('/usr/bin/xattr', ['-dr', 'com.apple.quarantine', unpackedApp]).catch(() => {})
 
     await mkdir(appsDir, { recursive: true })
-    if (alreadyInstalled) {
-      // Kill the running copy before replacing its bundle so `mv` can proceed cleanly and the
-      // user ends up on the new version.
-      await killRunningApp()
-      await rm(targetPath, { recursive: true, force: true })
-    }
-    try {
-      await rename(unpackedApp, targetPath)
-    } catch (err) {
-      // EXDEV: rename fails across filesystem boundaries (e.g. $TMPDIR on a
-      // different APFS volume than ~/Applications). Fall back to copy + delete.
-      if ((err as NodeJS.ErrnoException).code === 'EXDEV') {
-        await cp(unpackedApp, targetPath, { recursive: true })
-        await rm(unpackedApp, { recursive: true, force: true })
-      } else {
-        throw err
-      }
-    }
+    const backupPath = alreadyInstalled
+      ? join(appsDir, `${basename(APP_BUNDLE_NAME, '.app')}.backup-${Date.now()}.app`)
+      : undefined
+    let targetReplaced = false
 
-    console.log('Launching Exe Watcher Menubar...')
-    await runCommand('/usr/bin/open', [targetPath])
-    if (!(await waitForRunningApp())) {
-      throw new Error('Installed Exe Watcher Menubar, but the app did not launch. Open it from ~/Applications and retry if needed.')
+    try {
+      if (alreadyInstalled && backupPath) {
+        // Production updater rule: never delete the only installed copy. Move it aside first,
+        // install the candidate, and restore the backup if launch verification fails.
+        await killRunningApp()
+        await movePath(targetPath, backupPath)
+      }
+
+      await movePath(unpackedApp, targetPath)
+      targetReplaced = true
+
+      console.log('Launching Exe Watcher Menubar...')
+      await runCommand('/usr/bin/open', [targetPath])
+      if (!(await waitForRunningApp())) {
+        throw new Error('Installed Exe Watcher Menubar, but the app did not launch.')
+      }
+
+      if (backupPath) {
+        await rm(backupPath, { recursive: true, force: true }).catch(() => {})
+      }
+      return { installedPath: targetPath, launched: true }
+    } catch (err) {
+      if (backupPath && (targetReplaced || await exists(backupPath))) {
+        await restoreExistingApp(backupPath, targetPath)
+        const detail = err instanceof Error ? err.message : String(err)
+        throw new Error(`${detail} Restored the previous working Exe Watcher Menubar; your menu bar app was not left broken.`)
+      }
+      throw err
     }
-    return { installedPath: targetPath, launched: true }
   } finally {
     await rm(stagingDir, { recursive: true, force: true })
   }

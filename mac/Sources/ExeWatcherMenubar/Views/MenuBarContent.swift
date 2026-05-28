@@ -308,20 +308,19 @@ private struct Header: View {
                 .offset(y: 4)
             }
             Spacer()
-            if updateChecker.updateAvailable {
-                UpdateBadge()
-            } else {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(store.headerPayload.current.cost.asCurrency())
-                        .font(.system(size: 22, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
-                        .tracking(-0.5)
-                        .foregroundStyle(Theme.brandAccent)
-                    if store.dataMayBeStale {
-                        Text("Data may be stale")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(.orange.opacity(0.8))
-                    }
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(store.headerPayload.current.cost.asCurrency())
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .tracking(-0.5)
+                    .foregroundStyle(Theme.brandAccent)
+                if store.dataMayBeStale {
+                    Text("Data may be stale")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.orange.opacity(0.8))
+                }
+                if updateChecker.updateAvailable {
+                    UpdateBadge()
                 }
             }
         }
@@ -337,12 +336,7 @@ private struct UpdateBadge: View {
     var body: some View {
         VStack(spacing: 2) {
             Button {
-                if updateChecker.updateError != nil && !updateChecker.isUpdating {
-                    // Retry the update check when tapping after an error
-                    Task { await updateChecker.check() }
-                } else {
-                    updateChecker.performUpdate()
-                }
+                updateChecker.performUpdate()
             } label: {
                 HStack(spacing: 4) {
                     if updateChecker.isUpdating {
@@ -360,8 +354,8 @@ private struct UpdateBadge: View {
                     Text(updateChecker.isUpdating ? "Updating..." : updateChecker.updateError != nil ? "Retry" : "Update")
                         .font(.system(size: 10, weight: .medium))
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
             }
             .goldButton()
             .controlSize(.mini)
@@ -369,10 +363,12 @@ private struct UpdateBadge: View {
 
             if let error = updateChecker.updateError {
                 Text(error)
-                    .font(.system(size: 9))
+                    .font(.system(size: 8.5))
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: 220, alignment: .trailing)
             }
         }
     }

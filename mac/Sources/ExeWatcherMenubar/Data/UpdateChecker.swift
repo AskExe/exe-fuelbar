@@ -109,6 +109,7 @@ final class UpdateChecker {
     }
 
     func performUpdate() {
+        guard !isUpdating else { return }
         isUpdating = true
         updateError = nil
 
@@ -122,10 +123,12 @@ final class UpdateChecker {
             let stderr = String(data: errData, encoding: .utf8) ?? ""
             Task { @MainActor in
                 guard let self else { return }
+                self.isUpdating = false
                 if proc.terminationStatus != 0 {
-                    self.isUpdating = false
-                    self.updateError = stderr.isEmpty ? "Update failed (exit \(proc.terminationStatus))" : stderr
+                    self.updateError = self.sanitizeUpdateError(stderr, exitCode: proc.terminationStatus)
                     NSLog("Exe Watcher: update failed (exit \(proc.terminationStatus)): \(stderr)")
+                } else {
+                    self.updateError = nil
                 }
             }
         }
@@ -134,9 +137,21 @@ final class UpdateChecker {
             try process.run()
         } catch {
             isUpdating = false
-            updateError = error.localizedDescription
+            updateError = "Could not start updater: \(error.localizedDescription)"
             NSLog("Exe Watcher: update spawn failed: \(error)")
         }
+    }
+
+    private func sanitizeUpdateError(_ stderr: String, exitCode: Int32) -> String {
+        let trimmed = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+        let raw = trimmed.isEmpty ? "Update failed (exit \(exitCode))" : trimmed
+        if raw.contains("Restored the previous working Exe Watcher Menubar") {
+            return "Update failed safely — previous version restored. Retry when ready."
+        }
+        if raw.count > 140 {
+            return String(raw.prefix(137)) + "…"
+        }
+        return raw
     }
 }
 

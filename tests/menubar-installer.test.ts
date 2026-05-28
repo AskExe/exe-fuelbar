@@ -244,6 +244,80 @@ describe('menubar-installer', () => {
       expect(spawnCalls.filter(c => c.command === '/usr/bin/pgrep').length).toBeGreaterThanOrEqual(3)
     })
 
+
+
+    it('restores the previous app when a forced update installs but fails launch verification', async () => {
+      process.env.EXE_WATCHER_FORCE_MACOS_MAJOR = '15'
+      process.env.EXE_WATCHER_APP_EXIT_TIMEOUT_MS = '0'
+      process.env.EXE_WATCHER_APP_LAUNCH_TIMEOUT_MS = '1'
+
+      const fsMock = await import('node:fs/promises')
+      vi.mocked(fsMock.stat).mockResolvedValue({} as any)
+      vi.mocked(fsMock.mkdtemp).mockResolvedValue('/tmp/exe-watcher-menubar-mock')
+      vi.mocked(fsMock.mkdir).mockResolvedValue(undefined)
+      vi.mocked(fsMock.rename).mockResolvedValue(undefined)
+      vi.mocked(fsMock.rm).mockResolvedValue(undefined)
+
+      vi.stubGlobal('fetch', vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            tag_name: 'v0.2.21',
+            assets: [{ name: 'ExeWatcherMenubar-v0.2.21.zip', browser_download_url: 'https://github.com/AskExe/exe-watcher/releases/download/v0.2.21/fake.zip' }],
+          }),
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          body: new ReadableStream({ start(controller) { controller.close() } }),
+        } as unknown as Response))
+
+      // Existing app exits; candidate never appears after first open; restored app appears
+      // only after rollback opens the backup-recovered target.
+      let openCount = 0
+      let initialPgrepDone = false
+      const spawnCalls: Array<{ command: string; args: string[] }> = []
+      vi.mocked(childProcess.spawn).mockImplementation((command: string, args: readonly string[] = []) => {
+        spawnCalls.push({ command, args: [...args] })
+        const proc = new EventEmitter() as any
+        proc.stdout = new EventEmitter()
+        proc.stderr = new EventEmitter()
+
+        process.nextTick(() => {
+          if (command === '/usr/bin/open') {
+            openCount += 1
+            proc.emit('close', 0)
+          } else if (command === '/usr/bin/pgrep') {
+            let out = ''
+            if (!initialPgrepDone) {
+              initialPgrepDone = true
+              out = '111\n'
+            } else if (openCount >= 2) {
+              out = '333\n'
+            }
+            if (out) proc.stdout.emit('data', Buffer.from(out))
+            proc.emit('close', out ? 0 : 1)
+          } else {
+            proc.emit('close', 0)
+          }
+        })
+
+        return proc
+      })
+
+      await expect(installMenubarApp({ force: true })).rejects.toThrow(/Restored the previous working/)
+
+      const renameMock = vi.mocked(fsMock.rename)
+      expect(renameMock).toHaveBeenCalledWith(
+        expect.stringContaining('Watcher by EXE.app'),
+        expect.stringContaining('Watcher by EXE.backup-')
+      )
+      expect(renameMock).toHaveBeenCalledWith(
+        expect.stringContaining('Watcher by EXE.backup-'),
+        expect.stringContaining('Watcher by EXE.app')
+      )
+      expect(spawnCalls.filter(c => c.command === '/usr/bin/open').length).toBeGreaterThanOrEqual(2)
+    })
+
     it('escalates to SIGKILL when the stale app ignores SIGTERM', async () => {
       process.env.EXE_WATCHER_FORCE_MACOS_MAJOR = '15'
 

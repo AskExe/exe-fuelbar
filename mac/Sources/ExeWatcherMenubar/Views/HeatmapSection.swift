@@ -88,12 +88,13 @@ private struct TrendInsight: View {
 
     var body: some View {
         let window = makePeriodHistoryWindow(period: period, history: days)
-        let bars = buildTrendBars(from: window.entries)
+        let sourceBars = buildTrendBars(from: window.entries)
+        let bars = buildRenderableTrendBars(sourceBars, maxBars: 90)
         let comparisonBars = buildTrendBars(from: window.comparisonEntries)
-        let stats = computeTrendStats(bars: bars, comparisonBars: comparisonBars)
+        let stats = computeTrendStats(bars: sourceBars, comparisonBars: comparisonBars)
         // Tokens are real for the .all-providers view; per-provider history doesn't carry
         // token breakdown yet, so fall back to $ when no tokens are present.
-        let totalTokens = bars.reduce(0.0) { $0 + $1.tokens }
+        let totalTokens = sourceBars.reduce(0.0) { $0 + $1.tokens }
         let useTokens = totalTokens > 0
         let metric: (TrendBar) -> Double = useTokens ? { $0.tokens } : { $0.cost }
 
@@ -108,8 +109,8 @@ private struct TrendInsight: View {
         let avgValue = sevenDayValues.isEmpty ? 0 : sevenDayValues.reduce(0, +) / Double(sevenDayValues.count)
 
         let maxValue = max(bars.map(metric).max() ?? 1, avgValue, 0.01)
-        let peakValue = bars.filter({ metric($0) > 0 }).max(by: { metric($0) < metric($1) })
-        let latestValue = bars.last.map(metric)
+        let peakValue = sourceBars.filter({ metric($0) > 0 }).max(by: { metric($0) < metric($1) })
+        let latestValue = sourceBars.last.map(metric)
 
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
@@ -395,7 +396,7 @@ private struct MiniStat: View {
     }
 }
 
-private struct TrendBar: Identifiable {
+struct TrendBar: Identifiable {
     let id = UUID()
     let date: String
     let cost: Double
@@ -428,6 +429,33 @@ private func buildTrendBars(from days: [DailyHistoryEntry]) -> [TrendBar] {
             topModels: entry.topModels
         )
     }
+}
+
+func buildRenderableTrendBars(_ bars: [TrendBar], maxBars: Int) -> [TrendBar] {
+    guard maxBars > 0, bars.count > maxBars else { return bars }
+
+    let bucketSize = Int(ceil(Double(bars.count) / Double(maxBars)))
+    var result: [TrendBar] = []
+    result.reserveCapacity(maxBars)
+
+    var index = 0
+    while index < bars.count {
+        let end = min(index + bucketSize, bars.count)
+        let bucket = Array(bars[index..<end])
+        let last = bucket.last!
+        let activeModels = bucket.reversed().first(where: { !$0.topModels.isEmpty })?.topModels ?? []
+        result.append(TrendBar(
+            date: last.date,
+            cost: bucket.reduce(0.0) { $0 + $1.cost },
+            inputTokens: bucket.reduce(0.0) { $0 + $1.inputTokens },
+            outputTokens: bucket.reduce(0.0) { $0 + $1.outputTokens },
+            isToday: bucket.contains(where: \.isToday),
+            topModels: activeModels
+        ))
+        index = end
+    }
+
+    return result
 }
 
 private func computeTrendStats(bars: [TrendBar], comparisonBars: [TrendBar]) -> TrendStats {

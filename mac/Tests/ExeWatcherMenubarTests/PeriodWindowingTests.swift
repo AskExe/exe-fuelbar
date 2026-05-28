@@ -2,13 +2,18 @@ import Foundation
 import Testing
 @testable import ExeWatcherMenubar
 
-private func sampleDay(_ date: String, cost: Double) -> DailyHistoryEntry {
+private func sampleDay(
+    _ date: String,
+    cost: Double,
+    inputTokens: Int = 0,
+    outputTokens: Int = 0
+) -> DailyHistoryEntry {
     DailyHistoryEntry(
         date: date,
         cost: cost,
         calls: Int(cost),
-        inputTokens: 0,
-        outputTokens: 0,
+        inputTokens: inputTokens,
+        outputTokens: outputTokens,
         cacheReadTokens: 0,
         cacheWriteTokens: 0,
         topModels: []
@@ -62,6 +67,35 @@ struct PeriodWindowingTests {
         #expect(window.entries.count == 365)
         #expect(window.entries.last?.date == "2026-05-06")
         #expect(window.entries.last?.cost == 4)
+    }
+
+    @Test("all-time trend bars are bucketed so the chart remains visible")
+    func allTimeTrendBarsBucketForRendering() {
+        let days = (0..<365).map { offset in
+            sampleDay(
+                String(format: "2026-01-%02d", (offset % 28) + 1),
+                cost: Double(offset + 1),
+                inputTokens: offset + 1,
+                outputTokens: offset + 1
+            )
+        }
+        let bars = days.map { day in
+            TrendBar(
+                date: day.date,
+                cost: day.cost,
+                inputTokens: Double(day.inputTokens),
+                outputTokens: Double(day.outputTokens),
+                isToday: false,
+                topModels: []
+            )
+        }
+
+        let renderable = buildRenderableTrendBars(bars, maxBars: 90)
+
+        #expect(renderable.count <= 90)
+        #expect(renderable.reduce(0.0) { $0 + $1.cost } == bars.reduce(0.0) { $0 + $1.cost })
+        #expect(renderable.reduce(0.0) { $0 + $1.tokens } == bars.reduce(0.0) { $0 + $1.tokens })
+        #expect(renderable.contains { $0.tokens > 0 })
     }
 
     @Test("period metric labels stay aligned with the selected period")
