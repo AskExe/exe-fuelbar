@@ -182,13 +182,12 @@ final class AppStore {
         payload.optimize.findingCount
     }
 
-    /// True when a fetch error occurred or the CLI reported diagnostic warnings,
-    /// indicating the displayed data may be stale or incomplete.
+    /// True when the visible base payload failed to refresh and we are showing cached data.
+    /// Parser diagnostics are intentionally not promoted to this header-level warning: the CLI can
+    /// emit non-fatal provider warnings while still returning fresh, usable totals. Those belong in
+    /// logs/details, not as a scary stale-data banner beside the primary spend number.
     var dataMayBeStale: Bool {
-        if baseLastError != nil { return true }
-        if let diag = payload.diagnostics, !diag.warnings.isEmpty { return true }
-        if let diag = selectedPeriodSummaryPayload?.diagnostics, !diag.warnings.isEmpty { return true }
-        return false
+        baseLastError != nil
     }
 
     /// Switch to a period. Shows cached data instantly, then refreshes in background.

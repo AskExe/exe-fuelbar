@@ -366,6 +366,52 @@ struct AppStoreProviderPrefetchTests {
         #expect(store.payload.current.cost == 2)
     }
 
+    @Test("diagnostic warnings alone do not mark fresh data as stale")
+    @MainActor
+    func diagnosticWarningsDoNotMarkFreshDataStale() async throws {
+        let startOfDay = ISO8601DateFormatter().date(from: "2026-05-04T00:00:00Z")!
+        let clock = TestClock(startOfDay)
+        let payload = MenubarPayload(
+            generated: "2026-05-04T00:00:00Z",
+            cliVersion: nil,
+            minAppVersion: nil,
+            current: CurrentBlock(
+                label: "Today",
+                cost: 12,
+                calls: 1,
+                sessions: 1,
+                oneShotRate: nil,
+                inputTokens: 0,
+                outputTokens: 0,
+                cacheHitPercent: 0,
+                topActivities: [],
+                topModels: [],
+                providers: [:]
+            ),
+            optimize: OptimizeBlock(findingCount: 0, savingsUSD: 0, topFindings: []),
+            history: HistoryBlock(daily: []),
+            diagnostics: DiagnosticsBlock(daysCount: 1, parseTimeMs: 10, warnings: ["Codex session file format may have changed"]),
+            agentStats: nil,
+            exeOsDetected: nil,
+            statsFileAge: 39,
+            projectSpend: nil
+        )
+        let recorder = FetchRecorder(payloads: [
+            PayloadCacheKey(period: .today, provider: .all, includeOptimize: false, now: clock.now): payload,
+        ], now: { clock.now })
+        let store = AppStore(
+            fetchPayload: { period, provider, includeOptimize in
+                try await recorder.fetch(period: period, provider: provider, includeOptimize: includeOptimize)
+            },
+            now: { clock.now }
+        )
+
+        await store.refreshQuietly(period: .today)
+
+        #expect(store.payload.diagnostics?.warnings.isEmpty == false)
+        #expect(store.dataMayBeStale == false)
+    }
+
     @Test("header stays anchored to the all-provider total when a provider tab is selected")
     @MainActor
     func headerUsesSelectedPeriodSummary() async throws {
