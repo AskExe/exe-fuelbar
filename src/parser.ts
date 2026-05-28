@@ -365,12 +365,22 @@ async function scanProjectDirs(dirs: Array<{ path: string; name: string }>, seen
       // stale relative to the new fingerprint — recording that would cause the
       // next run to skip re-parsing (fingerprint matches) with outdated data,
       // or worse, mark the file h=0 when it actually has new API calls.
-      if (preStat) {
+      //
+      // CRITICAL: When a dateRange is active, a null parse result does NOT mean
+      // the file has no API calls — it means the file has no calls in THIS range.
+      // Recording h=0 here would cause subsequent scans with DIFFERENT date ranges
+      // to skip the file entirely. This was the root cause of Claude Code showing
+      // $0 on startup: the gap-fill (yesterday range) marked files h=0, then the
+      // today parse skipped them even though they had today's data.
+      // Only record h=0 (no API calls) when scanning WITHOUT a date filter, which
+      // proves the file is genuinely empty across all time.
+      const hasApiCalls = session !== null && session.apiCalls > 0
+      if (preStat && (hasApiCalls || !dateRange)) {
         try {
           const postStat = await stat(filePath)
           if (postStat.size === preStat.size && postStat.mtimeMs === preStat.mtimeMs) {
             // File was stable during the parse — safe to record
-            recordParseResult(filePath, sessionIndex, preStat.size, preStat.mtimeMs, session !== null && session.apiCalls > 0)
+            recordParseResult(filePath, sessionIndex, preStat.size, preStat.mtimeMs, hasApiCalls)
             indexDirty = true
           }
           // else: file changed mid-scan; leave the old index entry (if any) intact.
