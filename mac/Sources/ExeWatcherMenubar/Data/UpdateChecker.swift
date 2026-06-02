@@ -28,9 +28,11 @@ final class UpdateChecker {
     }
 
     var shouldShowUpdateButton: Bool {
-        updateAvailable || localUpdateOverrideEnabled
+        updateAvailable
     }
 
+    /// Debug-only override. Enabled via UserDefaults or env var for local testing.
+    /// Does NOT make the button appear in production — use only to test the update flow.
     var localUpdateOverrideEnabled: Bool {
         if UserDefaults.standard.bool(forKey: forceUpdateButtonKey) { return true }
         let raw = ProcessInfo.processInfo.environment[forceUpdateButtonEnv]?.lowercased()

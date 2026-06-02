@@ -351,7 +351,7 @@ private struct UpdateBadge: View {
                         Image(systemName: "arrow.down.circle.fill")
                             .font(.system(size: 10))
                     }
-                    Text(updateChecker.isUpdating ? "Updating..." : updateChecker.updateError != nil ? "Retry" : updateChecker.updateAvailable ? "Update" : "Reinstall")
+                    Text(updateChecker.isUpdating ? "Updating..." : updateChecker.updateError != nil ? "Retry" : "Update Available")
                         .font(.system(size: 10, weight: .medium))
                 }
                 .padding(.horizontal, 7)
