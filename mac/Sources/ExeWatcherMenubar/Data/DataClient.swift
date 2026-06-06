@@ -121,6 +121,16 @@ struct DataClient {
     }
 
     private static func runCLI(subcommand: [String], timeoutSeconds: UInt64 = spawnTimeoutSeconds) async throws -> ProcessResult {
+        let spanId = await MainActor.run {
+            RefreshTracer.shared.beginSpan(
+                name: "CLI Spawn", category: "cli", tid: .cli,
+                args: [
+                    "subcommand": .string(subcommand.joined(separator: " ")),
+                    "timeout_s": .int(Int(timeoutSeconds)),
+                ]
+            )
+        }
+
         let process = ExeWatcherCLI.makeProcess(subcommand: subcommand)
         let tempDir = FileManager.default.temporaryDirectory
         let token = UUID().uuidString
@@ -136,6 +146,9 @@ struct DataClient {
             stdoutHandle = try FileHandle(forWritingTo: stdoutURL)
             stderrHandle = try FileHandle(forWritingTo: stderrURL)
         } catch {
+            await MainActor.run {
+                RefreshTracer.shared.endSpan(spanId, args: ["result": .string("spawn_error")])
+            }
             throw DataClientError.spawn(error.localizedDescription)
         }
         defer {
@@ -151,7 +164,17 @@ struct DataClient {
         do {
             try process.run()
         } catch {
+            await MainActor.run {
+                RefreshTracer.shared.endSpan(spanId, args: ["result": .string("spawn_error")])
+            }
             throw DataClientError.spawn(error.localizedDescription)
+        }
+
+        await MainActor.run {
+            RefreshTracer.shared.instant(
+                name: "process_started", category: "cli", tid: .cli,
+                args: ["pid": .int(Int(process.processIdentifier))]
+            )
         }
 
         let didTimeOut = await waitForExitOrTimeout(process, timeoutSeconds: timeoutSeconds)
@@ -159,16 +182,35 @@ struct DataClient {
         try? stderrHandle.close()
 
         if didTimeOut {
+            await MainActor.run {
+                RefreshTracer.shared.endSpan(spanId, args: [
+                    "result": .string("timeout"),
+                    "timeout_s": .int(Int(timeoutSeconds)),
+                ])
+            }
             throw DataClientError.timeout(seconds: timeoutSeconds)
         }
 
         let out = try readFile(stdoutURL, limit: maxPayloadBytes)
         if out.count >= maxPayloadBytes {
+            await MainActor.run {
+                RefreshTracer.shared.endSpan(spanId, args: ["result": .string("output_too_large")])
+            }
             throw DataClientError.outputTooLarge
         }
 
         let err = try readFile(stderrURL, limit: maxStderrBytes)
         let stderrString = String(data: err, encoding: .utf8) ?? ""
+
+        await MainActor.run {
+            RefreshTracer.shared.endSpan(spanId, args: [
+                "result": .string("success"),
+                "exit_code": .int(Int(process.terminationStatus)),
+                "stdout_bytes": .int(out.count),
+                "stderr_bytes": .int(err.count),
+            ])
+        }
+
         return ProcessResult(stdout: out, stderr: stderrString, exitCode: process.terminationStatus)
     }
 

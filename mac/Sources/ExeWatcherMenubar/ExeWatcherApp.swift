@@ -65,6 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private var usageLogWatcher: UsageLogWatcher?
     private var usageLogDebounceWork: DispatchWorkItem?
+    private var healthMonitor: HealthMonitor?
     /// Held for the lifetime of the app to prevent Automatic Termination.
     private var backgroundActivity: NSObjectProtocol?
 
@@ -89,6 +90,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         cleanupLegacyLaunchAgent()
         registerLoginItemIfNeeded()
         Task { await updateChecker.checkIfNeeded() }
+
+        // Telemetry: Perfetto trace writer + self-healing health monitor
+        RefreshTracer.shared.initialize()
+        let monitor = HealthMonitor(store: store)
+        monitor.start()
+        healthMonitor = monitor
+        store.healthMonitor = monitor
+        RefreshTracer.shared.instant(name: "app_launched", category: "lifecycle", tid: .lifecycle)
     }
 
     private func setupWakeObservers() {
@@ -148,6 +157,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     private func forceRefresh() {
+        RefreshTracer.shared.instant(
+            name: "force_refresh", category: "lifecycle", tid: .lifecycle,
+            args: ["trigger": .string("system_wake")]
+        )
         Task {
             store.recoverFromSystemResume()
             await store.refreshTodayBadge()
@@ -180,6 +193,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        healthMonitor?.stop()
+        RefreshTracer.shared.instant(name: "app_terminating", category: "lifecycle", tid: .lifecycle)
+        RefreshTracer.shared.writeToDisk()
         refreshLoopTask?.cancel()
         refreshTimer?.cancel()
         usageLogDebounceWork?.cancel()
@@ -248,6 +264,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // for accessory apps, which is the same root cause as the DataClient hang.
         guard usageLogDebounceWork == nil else { return }
         watcherLog("FSEVENTS throttle: scheduling refresh")
+        RefreshTracer.shared.instant(name: "fsevents_trigger", category: "fsevents", tid: .fsevents)
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
             self.usageLogDebounceWork = nil
@@ -297,6 +314,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             let tick = Date()
             wlog.notice("timer fired at \(refreshTimeFormatter.string(from: tick)) (interval=\(intervalSeconds)s)")
             watcherLog("TIMER fired (interval=\(intervalSeconds)s)")
+            RefreshTracer.shared.instant(
+                name: "timer_tick", category: "refresh", tid: .refresh,
+                args: ["interval_s": .int(Int(intervalSeconds))]
+            )
             Task { @MainActor [weak self] in
                 await self?.performAutomaticRefresh(refreshSelectedPeriod: true)
             }
@@ -420,6 +441,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     func popoverWillShow(_ notification: Notification) {
+        RefreshTracer.shared.instant(name: "popover_open", category: "lifecycle", tid: .lifecycle)
         Task {
             await store.refreshTodayBadge()
             await store.refreshVisibleSelection()
@@ -433,6 +455,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     func popoverDidClose(_ notification: Notification) {
+        RefreshTracer.shared.instant(name: "popover_close", category: "lifecycle", tid: .lifecycle)
         rescheduleTimer(intervalSeconds: idleRefreshIntervalSeconds)
     }
 

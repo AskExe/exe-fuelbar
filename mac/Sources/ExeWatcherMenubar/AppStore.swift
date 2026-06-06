@@ -55,6 +55,9 @@ final class AppStore {
     private(set) var lastBadgeRefreshSuccessAt: Date?
     private(set) var lastBadgeRefreshError: String?
 
+    /// Health monitor for self-healing feedback loop. Initialized by AppDelegate after launch.
+    var healthMonitor: HealthMonitor?
+
     private let fetchPayload: MenubarPayloadFetcher
     private let now: AppStoreDateProvider
     private var cache: [PayloadCacheKey: CachedPayload] = [:]
@@ -230,6 +233,14 @@ final class AppStore {
     /// Treat unlock/wake as a new refresh generation: clear stale in-flight guards, cancel
     /// speculative prefetch, and ignore any old fetch that eventually returns.
     func recoverFromSystemResume() {
+        RefreshTracer.shared.instant(
+            name: "system_resume_recovery", category: "lifecycle", tid: .lifecycle,
+            args: [
+                "generation": .int(Int(refreshGeneration)),
+                "active_fetch_count": .int(activeFetchCount),
+                "in_flight_keys": .int(inFlightKeys.count),
+            ]
+        )
         refreshGeneration &+= 1
         badgeInFlight = false
         inFlightKeys.removeAll()
@@ -272,6 +283,10 @@ final class AppStore {
 
         badgeFetchStartedAt = now()
         defer { badgeFetchStartedAt = .distantPast }
+        let spanId = RefreshTracer.shared.beginSpan(
+            name: "Badge Refresh", category: "refresh", tid: .refresh,
+            args: ["period": .string("today"), "provider": .string("all")]
+        )
         watcherLog("BADGE fetch starting...")
         do {
             let fresh = try await fetchPayload(target.period, target.provider, false)
@@ -280,11 +295,21 @@ final class AppStore {
             lastBadgeRefreshSuccessAt = now()
             lastBadgeRefreshError = nil
             watcherLog("BADGE fetch success — cost=$\(String(format: "%.2f", fresh.current.cost))")
+            RefreshTracer.shared.endSpan(spanId, args: [
+                "result": .string("success"),
+                "cost": .double(fresh.current.cost),
+            ])
+            healthMonitor?.recordFetchResult(success: true)
         } catch {
             let desc = Self.describe(error: error)
             errorsByKey[target] = desc
             lastBadgeRefreshError = desc
             watcherLog("BADGE fetch FAILED: \(desc)")
+            RefreshTracer.shared.endSpan(spanId, args: [
+                "result": .string("error"),
+                "error": .string(desc),
+            ])
+            healthMonitor?.recordFetchResult(success: false)
         }
     }
 
@@ -300,6 +325,15 @@ final class AppStore {
         let generation = refreshGeneration
         // Clear stale error on retry start so the UI shows "loading" instead of a stale error.
         errorsByKey[key] = nil
+        let spanId = RefreshTracer.shared.beginSpan(
+            name: "Fetch \(key.period.rawValue)/\(key.provider.rawValue)",
+            category: "refresh", tid: .refresh,
+            args: [
+                "period": .string(key.period.rawValue),
+                "provider": .string(key.provider.rawValue),
+                "include_optimize": .bool(includeOptimize),
+            ]
+        )
         defer {
             // ALWAYS clean up in-flight state. The generation check must only gate
             // cache writes, not cleanup — otherwise a generation bump during a fetch
@@ -316,14 +350,27 @@ final class AppStore {
         }
         do {
             let fresh = try await fetchPayload(key.period, key.provider, includeOptimize)
-            guard generation == refreshGeneration else { return false }
+            guard generation == refreshGeneration else {
+                RefreshTracer.shared.endSpan(spanId, args: ["result": .string("generation_mismatch")])
+                return false
+            }
             cache[key] = CachedPayload(payload: fresh, fetchedAt: now())
             errorsByKey[key] = nil
+            RefreshTracer.shared.endSpan(spanId, args: ["result": .string("success")])
+            healthMonitor?.recordFetchResult(success: true)
             return true
         } catch {
-            guard generation == refreshGeneration else { return false }
+            guard generation == refreshGeneration else {
+                RefreshTracer.shared.endSpan(spanId, args: ["result": .string("generation_mismatch")])
+                return false
+            }
             errorsByKey[key] = Self.describe(error: error)
             NSLog("Exe Watcher: fetch failed for \(key.period.rawValue)/\(key.provider.rawValue): \(error)")
+            RefreshTracer.shared.endSpan(spanId, args: [
+                "result": .string("error"),
+                "error": .string(Self.describe(error: error)),
+            ])
+            healthMonitor?.recordFetchResult(success: false)
             return false
         }
     }
