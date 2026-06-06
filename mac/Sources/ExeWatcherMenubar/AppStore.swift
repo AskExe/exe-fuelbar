@@ -182,12 +182,17 @@ final class AppStore {
         payload.optimize.findingCount
     }
 
-    /// True when the visible base payload failed to refresh and we are showing cached data.
-    /// Parser diagnostics are intentionally not promoted to this header-level warning: the CLI can
-    /// emit non-fatal provider warnings while still returning fresh, usable totals. Those belong in
-    /// logs/details, not as a scary stale-data banner beside the primary spend number.
+    /// True when the visible data may be unreliable — either because the last refresh failed
+    /// (error-based) or because no successful refresh has landed recently (age-based). The
+    /// age-based check catches silent hangs that produce no error: the old Task.sleep bug would
+    /// leave fetchPayload suspended forever with no error logged, so stale data looked healthy.
+    /// Threshold: 2x the idle timer interval (10 min) gives enough margin for slow CLI scans
+    /// while still surfacing genuine staleness within a reasonable window.
+    private static let staleAgeLimitSeconds: TimeInterval = 600
     var dataMayBeStale: Bool {
-        baseLastError != nil
+        if baseLastError != nil { return true }
+        guard let lastSuccess = lastBadgeRefreshSuccessAt else { return false }
+        return now().timeIntervalSince(lastSuccess) > Self.staleAgeLimitSeconds
     }
 
     /// Switch to a period. Shows cached data instantly, then refreshes in background.
@@ -266,6 +271,7 @@ final class AppStore {
         }
 
         badgeFetchStartedAt = now()
+        defer { badgeFetchStartedAt = .distantPast }
         watcherLog("BADGE fetch starting...")
         do {
             let fresh = try await fetchPayload(target.period, target.provider, false)
@@ -280,8 +286,6 @@ final class AppStore {
             lastBadgeRefreshError = desc
             watcherLog("BADGE fetch FAILED: \(desc)")
         }
-        // Reset guard so the next timer tick can start a fresh fetch immediately.
-        badgeFetchStartedAt = .distantPast
     }
 
     @discardableResult

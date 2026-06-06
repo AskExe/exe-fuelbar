@@ -172,30 +172,56 @@ struct DataClient {
         return ProcessResult(stdout: out, stderr: stderrString, exitCode: process.terminationStatus)
     }
 
-    /// Redirecting stdout/stderr to temp files avoids the FileHandle.availableData hangs we saw
-    /// in the menubar process around day rollover. A child can write freely without filling a
-    /// pipe, while the app enforces a hard wall-clock timeout and then reads capped output.
+    /// Uses GCD for both exit detection and timeout enforcement. The previous implementation
+    /// polled `process.isRunning` with `Task.sleep`, which hangs indefinitely for accessory
+    /// apps because Swift's cooperative scheduler freely defers `.sleep` wakeups for
+    /// background/LSUIElement processes. `Process.terminationHandler` + `DispatchSourceTimer`
+    /// are wall-clock based and fire reliably regardless of app activation state.
     private static func waitForExitOrTimeout(_ process: Process, timeoutSeconds: UInt64) async -> Bool {
-        let deadline = Date().addingTimeInterval(TimeInterval(timeoutSeconds))
-        while process.isRunning && Date() < deadline {
-            try? await Task.sleep(nanoseconds: 100_000_000)
-        }
+        await withCheckedContinuation { continuation in
+            // Both the termination handler and the timeout can fire — only the first one resumes.
+            let resumed = LockedFlag()
 
-        if !process.isRunning {
-            process.waitUntilExit()
-            return false
-        }
+            // --- Normal exit path (GCD callback, not Task.sleep) ---
+            process.terminationHandler = { _ in
+                if resumed.setIfFirst() {
+                    continuation.resume(returning: false)
+                }
+            }
 
-        process.terminate()
-        let terminateDeadline = Date().addingTimeInterval(1)
-        while process.isRunning && Date() < terminateDeadline {
-            try? await Task.sleep(nanoseconds: 100_000_000)
+            // --- Timeout path (GCD timer, not Task.sleep) ---
+            let timer = DispatchSource.makeTimerSource(queue: .global(qos: .userInitiated))
+            timer.schedule(deadline: .now() + Double(timeoutSeconds))
+            timer.setEventHandler {
+                timer.cancel()
+                guard resumed.setIfFirst() else { return }
+                process.terminate()
+                // Grace period: SIGKILL after 1s if SIGTERM didn't work.
+                DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 1) {
+                    if process.isRunning {
+                        kill(process.processIdentifier, SIGKILL)
+                    }
+                    process.waitUntilExit()
+                }
+                continuation.resume(returning: true)
+            }
+            timer.resume()
         }
-        if process.isRunning {
-            kill(process.processIdentifier, SIGKILL)
+    }
+
+    /// Thread-safe one-shot flag. Guarantees a `withCheckedContinuation` is resumed exactly once
+    /// even when the termination handler and timeout fire on different queues near-simultaneously.
+    private final class LockedFlag: @unchecked Sendable {
+        private var flag = false
+        private let lock = NSLock()
+        /// Returns `true` on the first call, `false` on all subsequent calls.
+        func setIfFirst() -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            if flag { return false }
+            flag = true
+            return true
         }
-        process.waitUntilExit()
-        return true
     }
 
     private static func readFile(_ url: URL, limit: Int) throws -> Data {

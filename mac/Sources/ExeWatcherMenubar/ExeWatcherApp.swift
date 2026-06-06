@@ -64,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var refreshTimer: DispatchSourceTimer?
 
     private var usageLogWatcher: UsageLogWatcher?
-    private var usageLogDebounceTask: Task<Void, Never>?
+    private var usageLogDebounceWork: DispatchWorkItem?
     /// Held for the lifetime of the app to prevent Automatic Termination.
     private var backgroundActivity: NSObjectProtocol?
 
@@ -182,7 +182,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         refreshLoopTask?.cancel()
         refreshTimer?.cancel()
-        usageLogDebounceTask?.cancel()
+        usageLogDebounceWork?.cancel()
         usageLogWatcher?.stop()
     }
 
@@ -244,18 +244,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         // First event after cooldown — schedule a refresh after a short delay to batch
         // rapid-fire events, but DON'T cancel on subsequent events (throttle, not debounce).
-        guard usageLogDebounceTask == nil else { return }
+        // Uses GCD instead of Task.sleep: cooperative sleep wakeups are indefinitely deferred
+        // for accessory apps, which is the same root cause as the DataClient hang.
+        guard usageLogDebounceWork == nil else { return }
         watcherLog("FSEVENTS throttle: scheduling refresh")
-        usageLogDebounceTask = Task { @MainActor [weak self] in
-            defer { self?.usageLogDebounceTask = nil }
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            guard !Task.isCancelled, let self else { return }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.usageLogDebounceWork = nil
             self.lastFSEventRefreshAt = Date()
             watcherLog("FSEVENTS throttle: firing refresh")
             Task { @MainActor [weak self] in
                 await self?.performAutomaticRefresh(refreshSelectedPeriod: false)
             }
         }
+        usageLogDebounceWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: work)
     }
 
     private var lastRefreshStartedAt: Date = .distantPast
@@ -350,12 +353,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         let hasPayload = store.todayPayload != nil
         let compact = isCompact
-        let fallback = compact ? "$-" : "$—"
+        // Show $0 when the CLI has successfully run before but no data exists yet for today
+        // (e.g. day rollover). The dash fallback only appears before the very first successful
+        // fetch, when we don't yet know if the CLI is even installed.
+        let hasEverSucceeded = store.lastBadgeRefreshSuccessAt != nil
+        let fallback = hasEverSucceeded
+            ? (compact ? (0.0).asCompactCurrencyWhole() : (0.0).asCompactCurrency())
+            : (compact ? "$-" : "$—")
         let formatted = store.todayPayload?.current.cost
         let valueText = compact
             ? (formatted?.asCompactCurrencyWhole() ?? fallback)
             : (formatted?.asCompactCurrency() ?? fallback)
-        let color: NSColor = hasPayload ? .labelColor : .secondaryLabelColor
+        let color: NSColor = (hasPayload || hasEverSucceeded) ? .labelColor : .secondaryLabelColor
 
         button.attributedTitle = NSAttributedString(
             string: valueText,
