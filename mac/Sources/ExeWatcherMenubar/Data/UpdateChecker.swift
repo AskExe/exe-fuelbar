@@ -143,7 +143,12 @@ final class UpdateChecker {
         let executable = process.executableURL?.path ?? "/usr/bin/env"
         let args = process.arguments ?? []
         let env = process.environment ?? ProcessInfo.processInfo.environment
-        let logPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("exe-watcher-menubar-update.log")
+        // Use ~/.cache/ instead of NSTemporaryDirectory() — the per-app temp dir is cleaned
+        // up when the app terminates, which kills the log file before the detached script runs.
+        let cacheDir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".cache/exe-watcher").path
+        try? FileManager.default.createDirectory(atPath: cacheDir, withIntermediateDirectories: true)
+        let logPath = (cacheDir as NSString).appendingPathComponent("menubar-update.log")
 
         let script = detachedInstallerScript(executable: executable, args: args, environment: env, logPath: logPath)
         let launcher = Process()
@@ -169,13 +174,17 @@ final class UpdateChecker {
             .map { "export \($0.key)=\(shellQuote($0.value))" }
             .joined(separator: "\n")
         let argv = ([executable] + args).map(shellQuote).joined(separator: " ")
+        // nohup + disown + explicit setsid ensures the detached script survives the parent
+        // app terminating. The old version spawned a subshell with `&` but that stays in the
+        // same process group, so NSApp.terminate can kill it before the CLI runs.
         return """
-        (
+        nohup /bin/zsh -c \(shellQuote("""
         \(exports)
-        sleep 0.35
+        sleep 1
         echo "--- Exe Watcher menubar update $(date) ---" >> \(shellQuote(logPath))
         \(argv) >> \(shellQuote(logPath)) 2>&1
-        ) &
+        """)) </dev/null >\(shellQuote(logPath)) 2>&1 &
+        disown
         """
     }
 
