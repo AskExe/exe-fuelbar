@@ -28,7 +28,13 @@ enum TerminalLauncher {
         }
 
         let headless = ExeWatcherCLI.makeProcess(subcommand: subcommand)
-        try? headless.run()
+        headless.standardOutput = FileHandle.nullDevice
+        headless.standardError = FileHandle.nullDevice
+        do {
+            try headless.run()
+        } catch {
+            NSLog("Exe Watcher: headless report launch failed: \(error)")
+        }
     }
 
     /// Launches `claude login` in Terminal.app so the user can complete the OAuth flow

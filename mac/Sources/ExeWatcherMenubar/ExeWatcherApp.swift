@@ -18,6 +18,10 @@ private let popoverHeight: CGFloat = 660
 /// Module-level log function — writes to ~/.cache/exe-watcher/refresh.log.
 /// Accessible from any file in the module (AppStore, AppDelegate, etc).
 /// Must be @MainActor to be callable from @MainActor contexts without suspension.
+/// Rotates the log when it exceeds ~500KB: moves to refresh.log.old (keeping one
+/// generation of history) and starts fresh. Without rotation the file grows unbounded
+/// at ~30 lines per minute during active coding sessions.
+private let logRotationBytes = 500 * 1024
 @MainActor
 func watcherLog(_ message: String) {
     let dir = FileManager.default.homeDirectoryForCurrentUser
@@ -28,8 +32,14 @@ func watcherLog(_ message: String) {
     let line = "[\(ts)] \(message)\n"
     if let handle = try? FileHandle(forWritingTo: logFile) {
         handle.seekToEndOfFile()
+        let size = handle.offsetInFile
         handle.write(Data(line.utf8))
         handle.closeFile()
+        if size > logRotationBytes {
+            let oldLog = dir.appendingPathComponent("refresh.log.old")
+            try? FileManager.default.removeItem(at: oldLog)
+            try? FileManager.default.moveItem(at: logFile, to: oldLog)
+        }
     } else {
         try? Data(line.utf8).write(to: logFile)
     }

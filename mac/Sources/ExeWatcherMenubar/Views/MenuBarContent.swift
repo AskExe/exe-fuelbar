@@ -541,29 +541,36 @@ struct FooterBar: View {
     /// produces a folder of clean one-table-per-file CSVs; JSON produces a single structured
     /// file. The CLI is spawned with argv (no shell interpretation), so the output path cannot
     /// be abused to inject shell commands even if a pathological value slips through.
+    ///
+    /// Uses terminationHandler instead of the blocking waitUntilExit() which would freeze
+    /// the entire UI if the CLI hangs (same class of bug as the Task.sleep staleness fix).
     private func runExport(format: ExportFormat) {
-        Task {
-            let downloads = (NSHomeDirectory() as NSString).appendingPathComponent("Downloads")
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            let base = "exe-watcher-\(formatter.string(from: Date()))"
-            let outputPath = (downloads as NSString).appendingPathComponent(base + format.suffix)
+        let downloads = (NSHomeDirectory() as NSString).appendingPathComponent("Downloads")
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let base = "exe-watcher-\(formatter.string(from: Date()))"
+        let outputPath = (downloads as NSString).appendingPathComponent(base + format.suffix)
 
-            let process = ExeWatcherCLI.makeProcess(subcommand: [
-                "export", "-f", format.cliName, "-o", outputPath
-            ])
+        let process = ExeWatcherCLI.makeProcess(subcommand: [
+            "export", "-f", format.cliName, "-o", outputPath
+        ])
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
 
-            do {
-                try process.run()
-                process.waitUntilExit()
-                if process.terminationStatus == 0 {
+        process.terminationHandler = { finished in
+            if finished.terminationStatus == 0 {
+                DispatchQueue.main.async {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: outputPath)])
-                } else {
-                    NSLog("Exe Watcher: \(format.cliName.uppercased()) export exited with status \(process.terminationStatus)")
                 }
-            } catch {
-                NSLog("Exe Watcher: \(format.cliName.uppercased()) export failed: \(error)")
+            } else {
+                NSLog("Exe Watcher: \(format.cliName.uppercased()) export exited with status \(finished.terminationStatus)")
             }
+        }
+
+        do {
+            try process.run()
+        } catch {
+            NSLog("Exe Watcher: \(format.cliName.uppercased()) export failed: \(error)")
         }
     }
 
