@@ -37,6 +37,8 @@ const GEMINI_LONG_CONTEXT_THRESHOLD_TOKENS = 200_000
 const DIRECT_PROVIDER_PREFIXES = ['openai/', 'anthropic/', 'google/', 'vertex_ai/', 'minimax/']
 
 const FALLBACK_PRICING: Record<string, ModelCosts> = {
+  'claude-fable-5': { inputCostPerToken: 10e-6, outputCostPerToken: 50e-6, cacheWriteCostPerToken: 12.5e-6, cacheReadCostPerToken: 1e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
+  'claude-opus-4-8': { inputCostPerToken: 5e-6, outputCostPerToken: 25e-6, cacheWriteCostPerToken: 6.25e-6, cacheReadCostPerToken: 0.5e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
   'claude-opus-4-7': { inputCostPerToken: 5e-6, outputCostPerToken: 25e-6, cacheWriteCostPerToken: 6.25e-6, cacheReadCostPerToken: 0.5e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 6 },
   'claude-opus-4-6': { inputCostPerToken: 5e-6, outputCostPerToken: 25e-6, cacheWriteCostPerToken: 6.25e-6, cacheReadCostPerToken: 0.5e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 6 },
   'claude-opus-4-5': { inputCostPerToken: 5e-6, outputCostPerToken: 25e-6, cacheWriteCostPerToken: 6.25e-6, cacheReadCostPerToken: 0.5e-6, webSearchCostPerRequest: WEB_SEARCH_COST, fastMultiplier: 1 },
@@ -279,6 +281,8 @@ export async function loadPricing(): Promise<void> {
 // getCanonicalName strips any 'provider/' prefix first, so only the post-strip
 // forms need to be listed here.
 const BUILTIN_ALIASES: Record<string, string> = {
+  'anthropic--claude-4.8-opus':    'claude-opus-4-8',
+  'anthropic--claude-4.7-opus':    'claude-opus-4-7',
   'anthropic--claude-4.6-opus':    'claude-opus-4-6',
   'anthropic--claude-4.6-sonnet':  'claude-sonnet-4-6',
   'anthropic--claude-4.5-opus':    'claude-opus-4-5',
@@ -346,6 +350,8 @@ export function calculateCost(
 export function getShortModelName(model: string): string {
   const canonical = resolveAlias(getCanonicalName(model))
   const shortNames: Record<string, string> = {
+    'claude-fable-5': 'Fable 5',
+    'claude-opus-4-8': 'Opus 4.8',
     'claude-opus-4-7': 'Opus 4.7',
     'claude-opus-4-6': 'Opus 4.6',
     'claude-opus-4-5': 'Opus 4.5',
