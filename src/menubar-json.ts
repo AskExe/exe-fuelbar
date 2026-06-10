@@ -25,6 +25,7 @@ import { readdirSync, readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { homedir } from 'os'
 import { fileURLToPath } from 'url'
+import { getShortModelName } from './models.js'
 
 /** Read CLI version from package.json at build/runtime. */
 function getCliVersion(): string {
@@ -360,7 +361,7 @@ function buildTopModels(models: PeriodData['models']): MenubarPayload['current']
   return models
     .filter(m => m.name !== SYNTHETIC_MODEL_NAME)
     .slice(0, TOP_MODELS_LIMIT)
-    .map(m => ({ name: m.name, cost: m.cost, calls: m.calls }))
+    .map(m => ({ name: getShortModelName(m.name), cost: m.cost, calls: m.calls }))
 }
 
 function buildOptimize(optimize: OptimizeResult | null): MenubarPayload['optimize'] {
