@@ -474,9 +474,11 @@ describe('Parse -> Menubar JSON pipeline', () => {
     expect(buildingActivity).toBeDefined()
     expect(buildingActivity!.cost).toBe(5)
 
-    // Models
+    // Models — the menubar payload carries friendly display names, not raw
+    // model ids (buildTopModels maps through getShortModelName), because the
+    // Swift ModelRow renders this field directly as label text.
     expect(payload.current.topModels.length).toBe(1)
-    expect(payload.current.topModels[0]!.name).toBe('claude-opus-4-6')
+    expect(payload.current.topModels[0]!.name).toBe('Opus 4.6')
 
     // Providers
     expect(payload.current.providers).toEqual({ claude: 10.0, codex: 0 })
