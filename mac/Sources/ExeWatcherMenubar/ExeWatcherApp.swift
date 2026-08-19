@@ -256,36 +256,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         usageLogWatcher?.start()
     }
 
-    /// Throttle (not debounce) FSEvents-driven refreshes. Under heavy agent write load,
-    /// debounce never fires because each new event cancels the previous sleep. Throttle
-    /// guarantees a refresh fires within 5s of the first event, then ignores events for
-    /// a cooldown period. This is the fix for the "$140→$190 jump on manual refresh" bug.
-    private var lastFSEventRefreshAt: Date = .distantPast
-    private static let fsEventThrottleSeconds: TimeInterval = 5
+    /// Coalesces FSEvents-driven refreshes so a busy transcript directory produces ONE refresh
+    /// per quiet/cooldown window instead of back-to-back full refreshes. The previous "throttle"
+    /// stamped its cooldown when a refresh STARTED (with a 5s window shorter than the ~7s refresh
+    /// and no in-flight guard), so under sustained agent write load it fired continuously —
+    /// ~8.6GB of writes in ~10 min. See RefreshCoalescer for the corrected state machine.
+    private let refreshCoalescer = RefreshCoalescer()
 
     private func scheduleUsageLogRefresh() {
-        let now = Date()
-        let elapsed = now.timeIntervalSince(lastFSEventRefreshAt)
-        guard elapsed >= Self.fsEventThrottleSeconds else { return }
+        refreshCoalescer.noteEvent(now: Date())
+        pumpCoalescer()
+    }
 
-        // First event after cooldown — schedule a refresh after a short delay to batch
-        // rapid-fire events, but DON'T cancel on subsequent events (throttle, not debounce).
-        // Uses GCD instead of Task.sleep: cooperative sleep wakeups are indefinitely deferred
-        // for accessory apps, which is the same root cause as the DataClient hang.
-        guard usageLogDebounceWork == nil else { return }
-        watcherLog("FSEVENTS throttle: scheduling refresh")
-        RefreshTracer.shared.instant(name: "fsevents_trigger", category: "fsevents", tid: .fsevents)
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            self.usageLogDebounceWork = nil
-            self.lastFSEventRefreshAt = Date()
-            watcherLog("FSEVENTS throttle: firing refresh")
+    /// Drive the coalescer to its next action. Called on every event and after each refresh
+    /// completes. Runs on the main actor (AppDelegate is @MainActor).
+    private func pumpCoalescer() {
+        switch refreshCoalescer.evaluate(now: Date()) {
+        case .idle:
+            return
+        case .fireNow:
+            watcherLog("FSEVENTS coalescer: firing refresh")
+            RefreshTracer.shared.instant(name: "fsevents_trigger", category: "fsevents", tid: .fsevents)
             Task { @MainActor [weak self] in
-                await self?.performAutomaticRefresh(refreshSelectedPeriod: false)
+                guard let self else { return }
+                await self.performAutomaticRefresh(refreshSelectedPeriod: false)
+                self.refreshCoalescer.refreshDidFinish(now: Date())
+                self.pumpCoalescer()
             }
+        case .wait(let deadline):
+            let delay = max(0, deadline.timeIntervalSinceNow)
+            usageLogDebounceWork?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                self?.usageLogDebounceWork = nil
+                self?.pumpCoalescer()
+            }
+            usageLogDebounceWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
         }
-        usageLogDebounceWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: work)
     }
 
     private var lastRefreshStartedAt: Date = .distantPast

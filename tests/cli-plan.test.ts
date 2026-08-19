@@ -6,11 +6,18 @@ import { spawnSync } from 'node:child_process'
 import { describe, it, expect } from 'vitest'
 
 function runCli(args: string[], home: string) {
+  // The CLI resolves its config dir as XDG_CONFIG_HOME || <homedir>/.config
+  // (src/config.ts getConfigDir). Overriding only HOME leaves XDG_CONFIG_HOME
+  // inherited from the ambient environment, so on any machine that sets it the
+  // CLI writes outside the temp home, exits 0, and the assertions below read a
+  // file that was never going to be there. Pin both so the config location is
+  // decided by this test rather than by the environment it happens to run in.
   return spawnSync(process.execPath, ['--import', 'tsx', 'src/cli.ts', ...args], {
     cwd: process.cwd(),
     env: {
       ...process.env,
       HOME: home,
+      XDG_CONFIG_HOME: join(home, '.config'),
     },
     encoding: 'utf-8',
   })

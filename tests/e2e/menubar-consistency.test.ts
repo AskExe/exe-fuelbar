@@ -339,16 +339,35 @@ describe('CLI menubar-json E2E', { timeout: 60_000 }, () => {
       })
     })
 
-    it('today period includes today\'s date as the last history entry', async () => {
+    it('today period never reports history past today, and puts today last when present', async () => {
       const { data } = await allPeriodResults['today']
       const history = data.history as {
         daily: Array<{ date: string }>
       }
-      if (history.daily.length === 0) return // no data today
+      if (history.daily.length === 0) return // no history at all
 
+      // The CLI appends today to the history only when today has usage
+      // (cli.ts: todayDays.filter(d => d.date > yesterdayStr)), so "the last
+      // entry is today" is not an invariant — on any machine idle so far today
+      // the history legitimately ends yesterday. Asserting it made this test
+      // depend on ambient usage data and on what other tests had written to the
+      // shared cache, which is why it passed and failed on the same commit
+      // within half an hour. What the CLI does promise is that history never
+      // runs past today and that today, when present, sorts last.
       const todayStr = localDateKey()
       const lastEntry = history.daily[history.daily.length - 1]!
-      expect(lastEntry.date).toBe(todayStr)
+      expect(
+        lastEntry.date <= todayStr,
+        `history ends at ${lastEntry.date}, which is after today (${todayStr})`,
+      ).toBe(true)
+
+      const todayIndex = history.daily.findIndex(e => e.date === todayStr)
+      if (todayIndex !== -1) {
+        expect(
+          todayIndex,
+          `today (${todayStr}) is present at index ${todayIndex} but is not the last entry`,
+        ).toBe(history.daily.length - 1)
+      }
     })
   })
 
