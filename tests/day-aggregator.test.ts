@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { aggregateProjectsIntoDays, buildPeriodDataFromDays } from '../src/day-aggregator.js'
+import { aggregateProjectsIntoDays, buildPeriodDataFromDays, dateKey } from '../src/day-aggregator.js'
 import type { ProjectSummary } from '../src/types.js'
 
 function makeProject(overrides: Partial<ProjectSummary> & { sessions: ProjectSummary['sessions'] }): ProjectSummary {
@@ -45,8 +45,8 @@ describe('aggregateProjectsIntoDays', () => {
         sessions: [{
           sessionId: 's1',
           project: 'p',
-          firstTimestamp: '2026-04-09T10:00:00Z',
-          lastTimestamp: '2026-04-10T08:00:00Z',
+          firstTimestamp: '2026-04-09T12:00:00Z',
+          lastTimestamp: '2026-04-10T12:00:00Z',
           totalCostUSD: 10,
           totalInputTokens: 0,
           totalOutputTokens: 0,
@@ -56,14 +56,14 @@ describe('aggregateProjectsIntoDays', () => {
           turns: [
             {
               userMessage: 'hi',
-              timestamp: '2026-04-09T10:00:00Z',
+              timestamp: '2026-04-09T12:00:00Z',
               sessionId: 's1',
               category: 'coding',
               retries: 0,
               hasEdits: true,
               assistantCalls: [
-                makeCall('2026-04-09T10:00:00Z', 4),
-                makeCall('2026-04-10T08:00:00Z', 6),
+                makeCall('2026-04-09T12:00:00Z', 4),
+                makeCall('2026-04-10T12:00:00Z', 6),
               ],
             },
           ],
@@ -77,7 +77,7 @@ describe('aggregateProjectsIntoDays', () => {
     ]
 
     const days = aggregateProjectsIntoDays(projects)
-    expect(days.map(d => d.date)).toEqual(['2026-04-09', '2026-04-10'])
+    expect(days.map(d => d.date)).toEqual([dateKey('2026-04-09T12:00:00Z'), dateKey('2026-04-10T12:00:00Z')])
     expect(days[0]!.cost).toBe(4)
     expect(days[0]!.calls).toBe(1)
     expect(days[1]!.cost).toBe(6)
@@ -130,7 +130,7 @@ describe('aggregateProjectsIntoDays', () => {
   })
 
   it('counts a session under its firstTimestamp local date', () => {
-    // Use a midday timestamp so the local date is the same regardless of timezone
+    // Derive the expected date from the production formatter (dateKey) so this holds in any timezone
     const projects: ProjectSummary[] = [
       makeProject({
         sessions: [{
@@ -148,7 +148,7 @@ describe('aggregateProjectsIntoDays', () => {
       }),
     ]
     const days = aggregateProjectsIntoDays(projects)
-    expect(days[0]!.date).toBe('2026-04-09')
+    expect(days[0]!.date).toBe(dateKey('2026-04-09T12:00:00Z'))
     expect(days[0]!.sessions).toBe(1)
   })
 

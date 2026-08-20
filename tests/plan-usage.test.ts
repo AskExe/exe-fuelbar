@@ -67,7 +67,7 @@ describe('getPlanUsage', () => {
   it('projects using median daily spend (not mean)', async () => {
     const dailyCosts = [1, 100, 1, 100, 1, 100, 1]
     const turns = dailyCosts.map((cost, idx) => ({
-      timestamp: `2026-04-${String(idx + 1).padStart(2, '0')}T12:00:00.000Z`,
+      timestamp: new Date(2026, 3, idx + 1, 12, 0, 0).toISOString(),
       assistantCalls: [{ costUSD: cost }],
     }))
 
@@ -84,7 +84,7 @@ describe('getPlanUsage', () => {
       provider: 'all',
       resetDay: 1,
       setAt: '2026-04-01T00:00:00.000Z',
-    }, new Date('2026-04-07T12:00:00.000Z'))
+    }, new Date(2026, 3, 7, 12, 0, 0))
 
     // Median(1,100,1,100,1,100,1) = 1, so remaining 23 days adds 23.
     expect(Math.round(usage.projectedMonthUsd)).toBe(327)
