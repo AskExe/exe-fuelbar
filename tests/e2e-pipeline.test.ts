@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir, rm } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
-import { aggregateProjectsIntoDays, buildPeriodDataFromDays } from '../src/day-aggregator.js'
+import { aggregateProjectsIntoDays, buildPeriodDataFromDays, dateKey } from '../src/day-aggregator.js'
 import { exportCsv, exportJson, type PeriodExport } from '../src/export.js'
 import { buildMenubarPayload, type PeriodData, type ProviderCost } from '../src/menubar-json.js'
 import {
@@ -178,11 +178,11 @@ afterEach(async () => {
 describe('Parse -> Aggregate -> PeriodData pipeline', () => {
   it('aggregates project sessions into daily entries and builds correct PeriodData', () => {
     const turns1 = [
-      makeTurn('2026-04-20T10:00:00Z', 5.0, { category: 'building', hasEdits: true }),
-      makeTurn('2026-04-20T14:00:00Z', 3.0, { category: 'debugging', hasEdits: true, retries: 1 }),
+      makeTurn('2026-04-20T12:00:00Z', 5.0, { category: 'building', hasEdits: true }),
+      makeTurn('2026-04-20T12:00:00Z', 3.0, { category: 'debugging', hasEdits: true, retries: 1 }),
     ]
     const turns2 = [
-      makeTurn('2026-04-21T09:00:00Z', 7.0, { category: 'building', model: 'gpt-5', provider: 'codex' }),
+      makeTurn('2026-04-21T12:00:00Z', 7.0, { category: 'building', model: 'gpt-5', provider: 'codex' }),
     ]
 
     const sess1 = makeSession('sess-1', '/proj/alpha', turns1)
@@ -192,8 +192,8 @@ describe('Parse -> Aggregate -> PeriodData pipeline', () => {
     const days = aggregateProjectsIntoDays([project])
 
     expect(days).toHaveLength(2)
-    expect(days[0]!.date).toBe('2026-04-20')
-    expect(days[1]!.date).toBe('2026-04-21')
+    expect(days[0]!.date).toBe(dateKey('2026-04-20T12:00:00Z'))
+    expect(days[1]!.date).toBe(dateKey('2026-04-21T12:00:00Z'))
 
     expect(days[0]!.cost).toBe(8)
     expect(days[0]!.calls).toBe(2)
